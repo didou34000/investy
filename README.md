@@ -28,3 +28,4 @@ Les APIs renvoient un succès simulé si les clés manquent (aucun blocage en pr
 
 ## Sécurité
 - Headers via `next.config.js` et `vercel.json`
+# investy
