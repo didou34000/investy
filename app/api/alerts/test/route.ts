@@ -4,7 +4,10 @@ import { cookies } from "next/headers";
 import { fetchYahooBatch, fetchCoingecko } from "@/lib/marketLive";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialiser Resend seulement si la clé API est valide
+const resend = process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_resend_api_key_here' 
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 export async function POST(){
   try{
@@ -28,22 +31,26 @@ export async function POST(){
       return `<li><b>${r.symbol}</b> : ${d1} (1j) · ${d5} (5j)</li>`;
     }).join("");
 
-    await resend.emails.send({
-      from: "Investy <noreply@investy.ai>",
-      to: session.user.email!,
-      subject: "Investy — Email de test (aperçu alertes)",
-      html: `
-        <div style="max-width:640px;margin:auto;font:14px/1.5 Inter,Arial">
-          <h2>Aperçu de vos alertes</h2>
-          <ul>${lines || "<li>Pas d'actifs suivis.</li>"}</ul>
-          <p style="color:#6b7280;font-size:12px">
-            Contenu éducatif, non prescriptif. Performances passées ≠ futures.
-          </p>
-        </div>
-      `
-    });
+    if (resend) {
+      await resend.emails.send({
+        from: "Investy <noreply@investy.ai>",
+        to: session.user.email!,
+        subject: "Investy — Email de test (aperçu alertes)",
+        html: `
+          <div style="max-width:640px;margin:auto;font:14px/1.5 Inter,Arial">
+            <h2>Aperçu de vos alertes</h2>
+            <ul>${lines || "<li>Pas d'actifs suivis.</li>"}</ul>
+            <p style="color:#6b7280;font-size:12px">
+              Contenu éducatif, non prescriptif. Performances passées ≠ futures.
+            </p>
+          </div>
+        `
+      });
+    } else {
+      console.log(`[SIMULATION] Email de test envoyé à ${session.user.email}`);
+    }
 
-    return NextResponse.json({ ok:true });
+    return NextResponse.json({ ok:true, simulated: !resend });
   } catch(e:any){
     console.error("Erreur test email:", e);
     return NextResponse.json({ ok:false, error:e?.message||"send_error" }, { status:500 });
