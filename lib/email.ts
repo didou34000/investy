@@ -1,10 +1,19 @@
 import { Resend } from "resend";
 import { getSuggestions } from "./suggestions";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialiser Resend seulement si la clé API est valide
+const resend = process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_resend_api_key_here' 
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 export async function sendWeeklyAlertEmail(user: any, profil: string) {
   try {
+    // Si Resend n'est pas configuré, simuler l'envoi
+    if (!resend) {
+      console.log(`📧 [SIMULATION] Email envoyé à ${user.email} pour le profil ${profil}`);
+      return { success: true, simulated: true };
+    }
+
     const suggestions = getSuggestions(profil);
     
     const html = `
@@ -95,6 +104,12 @@ export async function sendWeeklyAlertEmail(user: any, profil: string) {
 
 export async function sendWelcomeEmail(user: any, profil: string) {
   try {
+    // Si Resend n'est pas configuré, simuler l'envoi
+    if (!resend) {
+      console.log(`📧 [SIMULATION] Email de bienvenue envoyé à ${user.email} pour le profil ${profil}`);
+      return { success: true, simulated: true };
+    }
+
     const html = `
       <!DOCTYPE html>
       <html>
