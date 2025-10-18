@@ -1,11 +1,4 @@
 {
-  "functions": {
-    "app/api/cron/alerts/route.ts": {
-      "runtime": "nodejs20.x",
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  },
   "crons": [
     { "path": "/api/ingest", "schedule": "0 8 * * *" },
     { "path": "/api/cron/alerts?freq=daily", "schedule": "0 9 * * *" }
