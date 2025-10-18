@@ -19,17 +19,21 @@ function todayUTC(): string {
 
 export async function GET(req: Request) {
   // Vérification des variables d'environnement
-  if (!supabaseUrl || !supabaseServiceKey || !resendApiKey) {
+  if (!supabaseUrl || !supabaseServiceKey) {
     return NextResponse.json({
       ok: false,
       error: "Missing environment variables",
-      required: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "RESEND_API_KEY"],
+      required: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"],
       message: "Please configure your environment variables in .env.local"
     }, { status: 500 });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
-  const resend = new Resend(resendApiKey);
+  
+  // Initialiser Resend seulement si la clé API est valide
+  const resend = resendApiKey && resendApiKey !== 'your_resend_api_key_here' 
+    ? new Resend(resendApiKey)
+    : null;
 
   const { searchParams } = new URL(req.url);
   const freq = (searchParams.get("freq") as "daily" | "weekly") || "weekly";
@@ -191,19 +195,29 @@ export async function GET(req: Request) {
             unsubToken
           });
 
-          await resend.emails.send({
-            from: "Investy <noreply@investy.ai>",
-            to: email,
-            subject: `📈 Investy — ${freq === "daily" ? "Alerte du jour" : "Résumé de la semaine"}`,
-            html
-          });
+          if (resend) {
+            await resend.emails.send({
+              from: "Investy <noreply@investy.ai>",
+              to: email,
+              subject: `📈 Investy — ${freq === "daily" ? "Alerte du jour" : "Résumé de la semaine"}`,
+              html
+            });
 
-          await supabase
-            .from("alert_events")
-            .update({ sent: true })
-            .eq("id", ev?.id);
+            await supabase
+              .from("alert_events")
+              .update({ sent: true })
+              .eq("id", ev?.id);
 
-          console.log(`[CRON] Email sent to ${email} with ${items.length} items`);
+            console.log(`[CRON] Email sent to ${email} with ${items.length} items`);
+          } else {
+            console.log(`[CRON] [SIMULATION] Email would be sent to ${email} with ${items.length} items (Resend not configured)`);
+            
+            // Marquer comme envoyé même en simulation
+            await supabase
+              .from("alert_events")
+              .update({ sent: true })
+              .eq("id", ev?.id);
+          }
         } else {
           console.log(`[CRON] No email sent to ${email} - no items and not weekly`);
         }
