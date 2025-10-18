@@ -1,56 +1,51 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-const buckets = new Map<string, { count: number; ts: number }>();
-const WINDOW_MS = 60_000; // 1 min
-const LIMIT = 20;
+// API routes à protéger
+const PROTECTED_API_ROUTES = [
+  '/api/alerts',
+  '/api/cron',
+  '/api/email',
+  '/api/ingest',
+  '/api/analytics',
+  '/api/feedback',
+  '/api/events',
+  '/api/macro',
+  '/api/quotes',
+  '/api/reco',
+  '/api/share',
+  '/api/subscribe',
+  '/api/unsub'
+]
 
-export function middleware(req: NextRequest) {
-  const url = new URL(req.url);
+// Clé API pour l'authentification
+const API_KEY = process.env.API_KEY || 'your-secret-api-key-here'
 
-  // Basic Auth for Preview deployments (protect everything except allowed paths)
-  const env = process.env.NEXT_PUBLIC_ENV;
-  const isAllowedPath =
-    url.pathname.startsWith("/_next") ||
-    url.pathname.startsWith("/api/og") ||
-    url.pathname.startsWith("/api/health");
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
 
-  if (env === "preview" && !isAllowedPath) {
-    const header = req.headers.get("authorization") || "";
-    const expected =
-      "Basic " + Buffer.from(`${process.env.PREVIEW_USER}:${process.env.PREVIEW_PASS}`).toString("base64");
-    if (header !== expected) {
-      return new NextResponse("Auth required", {
-        status: 401,
-        headers: { "WWW-Authenticate": 'Basic realm="Investy Preview"' },
-      });
+  // Vérifier si c'est une route API protégée
+  const isProtectedRoute = PROTECTED_API_ROUTES.some(route => 
+    pathname.startsWith(route)
+  )
+
+  if (isProtectedRoute) {
+    // Vérifier la clé API dans les headers
+    const apiKey = request.headers.get('x-api-key')
+    
+    if (!apiKey || apiKey !== API_KEY) {
+      return NextResponse.json(
+        { error: 'Unauthorized - API key required' },
+        { status: 401 }
+      )
     }
   }
-  const key = `${url.pathname}:${(req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "ip")}`;
-  
-  if (url.pathname.startsWith("/api/email") || url.pathname.startsWith("/api/quiz")) {
-    const now = Date.now();
-    const b = buckets.get(key) || { count: 0, ts: now };
-    
-    if (now - b.ts > WINDOW_MS) { 
-      b.count = 0; 
-      b.ts = now; 
-    }
-    
-    b.count++; 
-    buckets.set(key, b);
-    
-    if (b.count > LIMIT) {
-      return new Response(JSON.stringify({ error: "rate_limited" }), { 
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-  }
-  
-  return NextResponse.next();
+
+  return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/((?!_next|api/og|api/health).*)", "/api/:path*"]
-};
+  matcher: [
+    '/api/((?!health).*)', // Toutes les routes API sauf /api/health
+  ]
+}
