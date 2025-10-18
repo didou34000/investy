@@ -46,6 +46,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/((?!health).*)', // Toutes les routes API sauf /api/health
+    '/api/((?!health|ingest|cron).*)', // Toutes les routes API sauf /api/health, /api/ingest et /api/cron
   ]
 }
