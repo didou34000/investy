@@ -1,14 +1,25 @@
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+export const dynamic = "force-dynamic"; // évite l'évaluation au build
+
+import { createClient } from "@supabase/supabase-js";
 import { fetchYahooBatch, fetchCoingecko } from "@/lib/marketLive";
 import { sendAlertEmail } from "@/lib/alertMailer";
+import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
+function supabaseServer() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE;
+  if (!url || !key) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE");
+  }
+  return createClient(url, key);
+}
 
 export async function GET() {
-  const { data: users } = await supabaseAdmin.from("auth.users").select("id, email");
-  const { data: prefs } = await supabaseAdmin.from("alert_preferences").select("*");
-  const { data: watchlist } = await supabaseAdmin.from("user_watchlist").select("*");
+  const supabase = supabaseServer(); // <-- création DANS le handler
+  
+  const { data: users } = await supabase.from("auth.users").select("id, email");
+  const { data: prefs } = await supabase.from("alert_preferences").select("*");
+  const { data: watchlist } = await supabase.from("user_watchlist").select("*");
 
   for (const u of users || []) {
     const pref = prefs?.find((p:any) => p.user_id === u.id);
@@ -34,8 +45,8 @@ export async function GET() {
           symbol: q.symbol,
           change: pct,
           message: pct > 0
-            ? `${q.symbol} progresse de ${pct.toFixed(1)}% aujourd’hui 📈`
-            : `${q.symbol} recule de ${pct.toFixed(1)}% aujourd’hui 📉`,
+            ? `${q.symbol} progresse de ${pct.toFixed(1)}% aujourd'hui 📈`
+            : `${q.symbol} recule de ${pct.toFixed(1)}% aujourd'hui 📉`,
         });
       }
     }
@@ -50,7 +61,7 @@ export async function GET() {
         });
       }catch{}
 
-      await supabaseAdmin.from("alert_history").insert(
+      await supabase.from("alert_history").insert(
         triggered.map((t:any) => ({
           user_id: u.id,
           symbol: t.symbol,
