@@ -50,6 +50,7 @@ export async function GET(request: Request) {
             link: item.link,
             pubDate: item.pubDate,
             contentSnippet: description,
+            ogImage: item.image,
           },
           source.id,
           source.name,

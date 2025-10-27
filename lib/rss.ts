@@ -46,6 +46,7 @@ export function parseRss(xmlText: string) {
     link: string;
     pubDate: string;
     description: string;
+    image?: string;
   }> = [];
 
   try {
@@ -55,11 +56,34 @@ export function parseRss(xmlText: string) {
 
     for (const itemMatch of itemsMatches) {
       const titleMatch = itemMatch.match(/<title[^>]*><!\[CDATA\[(.*?)\]\]><\/title>/i) ||
-                         itemMatch.match(/<title[^>]*>(.*?)<\/title>/i);
+                       itemMatch.match(/<title[^>]*>(.*?)<\/title>/i);
       const linkMatch = itemMatch.match(/<link[^>]*>(.*?)<\/link>/i);
       const pubDateMatch = itemMatch.match(/<pubDate[^>]*>(.*?)<\/pubDate>/i);
       const descMatch = itemMatch.match(/<description[^>]*><!\[CDATA\[(.*?)\]\]><\/description>/i) ||
-                       itemMatch.match(/<description[^>]*>(.*?)<\/description>/i);
+                     itemMatch.match(/<description[^>]*>(.*?)<\/description>/i);
+      
+      // Extraire les images
+      let imageUrl: string | undefined;
+      
+      // Media RSS
+      const mediaContent = itemMatch.match(/<media:content[^>]*url=["'](.*?)["']/i);
+      if (mediaContent) {
+        imageUrl = mediaContent[1].trim();
+      }
+      
+      // Enclosure (audio/image/video)
+      const enclosure = itemMatch.match(/<enclosure[^>]*url=["'](.*?)["']/i);
+      if (enclosure) {
+        imageUrl = enclosure[1].trim();
+      }
+      
+      // Image dans description HTML
+      if (!imageUrl) {
+        const imgMatch = descMatch?.[1]?.match(/<img[^>]*src=["']([^"']*)["']/i);
+        if (imgMatch) {
+          imageUrl = imgMatch[1].trim();
+        }
+      }
 
       if (titleMatch && linkMatch) {
         items.push({
@@ -67,6 +91,7 @@ export function parseRss(xmlText: string) {
           link: linkMatch[1].trim(),
           pubDate: pubDateMatch?.[1]?.trim() || new Date().toISOString(),
           description: descMatch?.[1]?.trim() || "",
+          image: imageUrl,
         });
       }
     }

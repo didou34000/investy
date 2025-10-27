@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, ExternalLink } from "lucide-react";
+import { Search } from "lucide-react";
 import { formatRelativeFR } from "@/lib/date";
 import type { NewsItem, Period } from "@/types/news";
+import ArticleModal from "@/components/ArticleModal";
 
 export default function ActuPage() {
   const [items, setItems] = useState<NewsItem[]>([]);
@@ -12,6 +13,7 @@ export default function ActuPage() {
   const [period, setPeriod] = useState<Period>("all");
   const [search, setSearch] = useState("");
   const [displayCount, setDisplayCount] = useState(20);
+  const [selectedArticle, setSelectedArticle] = useState<NewsItem | null>(null);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -119,22 +121,29 @@ export default function ActuPage() {
         {!loading && !error && displayedItems.length > 0 && (
           <>
             <div className="space-y-4">
-              {displayedItems.map(item => (
-                <article
-                  key={item.id}
-                  className="bg-white rounded-2xl shadow p-4 md:p-6 hover:shadow-md transition-shadow"
-                >
+            {displayedItems.map(item => (
+              <article
+                key={item.id}
+                className="bg-white rounded-2xl shadow cursor-pointer hover:shadow-lg transition-all"
+                onClick={() => setSelectedArticle(item)}
+              >
+                {item.image && (
+                  <div className="h-48 rounded-t-2xl overflow-hidden">
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="p-4 md:p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-blue-600 transition-colors"
-                      >
+                      <h2 className="text-lg font-semibold text-slate-900 mb-2 hover:text-blue-600 transition-colors">
                         {item.title}
-                      </a>
                       </h2>
 
                       <div className="flex flex-wrap items-center gap-3 mb-3 text-sm text-slate-600">
@@ -161,18 +170,9 @@ export default function ActuPage() {
                         <p className="text-slate-600 line-clamp-2">{item.contentSnippet}</p>
                       )}
                     </div>
-
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-shrink-0 p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                      aria-label="Ouvrir l'article"
-                    >
-                      <ExternalLink className="w-5 h-5 text-slate-400" />
-                    </a>
                   </div>
-                </article>
+                </div>
+              </article>
               ))}
             </div>
 
@@ -190,6 +190,13 @@ export default function ActuPage() {
           </>
         )}
       </div>
+
+      {/* Modal */}
+      <ArticleModal
+        article={selectedArticle}
+        isOpen={selectedArticle !== null}
+        onClose={() => setSelectedArticle(null)}
+      />
     </main>
   );
 }
