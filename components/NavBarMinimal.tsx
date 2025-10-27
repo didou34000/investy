@@ -9,9 +9,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/", label: "Accueil" },
   { href: "/quiz", label: "Quiz" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/watchlist", label: "Mes Actifs" },
-  { href: "/news", label: "Actualités" },
+  { href: "/actu", label: "Actu" },
 ];
 
 export default function NavBarMinimal() {
