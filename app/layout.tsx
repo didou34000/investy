@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://investy.app'),
+  metadataBase: new URL('https://investy.app'),
   alternates: {
     canonical: '/',
   },
@@ -60,9 +60,6 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  },
-  verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION,
   },
 };
 
