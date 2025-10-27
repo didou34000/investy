@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseRss, stripHtml } from "@/lib/rss";
 import { NEWS_SOURCES } from "@/lib/news/sources";
 import { normalizeItem } from "@/lib/news/normalize";
+import { translateToFrench } from "@/lib/translator";
 import type { NewsItem } from "@/types/news";
 
 export const dynamic = "force-dynamic";
@@ -35,12 +36,20 @@ export async function GET(request: Request) {
       const items = parseRss(xmlText);
 
       for (const item of items) {
+        let title = item.title;
+        let description = item.description;
+
+        // Traduction automatique EN -> FR
+        if (source.lang === 'en') {
+          title = await translateToFrench(title);
+        }
+
         const normalized = normalizeItem(
           {
-            title: item.title,
+            title,
             link: item.link,
             pubDate: item.pubDate,
-            contentSnippet: item.description,
+            contentSnippet: description,
           },
           source.id,
           source.name,

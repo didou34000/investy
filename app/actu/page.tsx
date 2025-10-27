@@ -127,14 +127,14 @@ export default function ActuPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                        <a
-                          href={item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:text-blue-600 transition-colors"
-                        >
-                          {item.title}
-                        </a>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-blue-600 transition-colors"
+                      >
+                        {item.title}
+                      </a>
                       </h2>
 
                       <div className="flex flex-wrap items-center gap-3 mb-3 text-sm text-slate-600">
@@ -143,12 +143,6 @@ export default function ActuPage() {
                         </span>
                         <span>•</span>
                         <time>{formatRelativeFR(item.publishedAt)}</time>
-                        {item.langOriginal === 'en' && (
-                          <>
-                            <span>•</span>
-                            <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-xs">EN</span>
-                          </>
-                        )}
                         {item.tags.length > 0 && (
                           <>
                             <span>•</span>
