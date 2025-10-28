@@ -16,7 +16,8 @@ export function normalizeItem(
   raw: RawItem,
   sourceId: string,
   sourceName: string,
-  lang: Lang
+  lang: Lang,
+  sourceLogo?: string
 ): NewsItem {
   const publishedAt = raw.isoDate || raw.pubDate || new Date().toISOString();
   const content = raw.contentSnippet || raw.content || "";
@@ -26,6 +27,7 @@ export function normalizeItem(
     id: hashUrl(raw.link),
     sourceId,
     sourceName,
+    sourceLogo,
     url: cleanUrl(raw.link),
     title: raw.title,
     summary: "", // Sera enrichi par l'API

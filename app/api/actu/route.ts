@@ -42,6 +42,9 @@ export async function GET(request: Request) {
         // Traduction automatique EN -> FR
         if (source.lang === 'en') {
           title = await translateToFrench(title);
+          if (description) {
+            try { description = await translateToFrench(description); } catch {}
+          }
         }
 
         const normalized = normalizeItem(
@@ -54,7 +57,8 @@ export async function GET(request: Request) {
           },
           source.id,
           source.name,
-          source.lang
+          source.lang,
+          source.logo
         );
 
         // Déduplication

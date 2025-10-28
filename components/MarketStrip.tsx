@@ -13,9 +13,10 @@ type Item = {
   isEur?: boolean;
   url?: string;
   logo?: string | null;
+  category?: string;
 };
 
-export default function MarketStrip() {
+export default function MarketStrip({ category, title }: { category?: string; title?: string }) {
   const [items, setItems] = useState<Item[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -26,7 +27,9 @@ export default function MarketStrip() {
       const r = await fetch("/api/market", { cache: "no-store" });
       const j = await r.json();
       if (!r.ok || !j?.ok) throw new Error(j?.error || "market_fetch_error");
-      setItems(j.data as Item[]);
+      let data = j.data as Item[];
+      if (category) data = data.filter((x: Item) => x.category === category);
+      setItems(data);
     } catch (e: any) {
       setError(e?.message || "Erreur de récupération des marchés");
     }
@@ -57,6 +60,9 @@ export default function MarketStrip() {
   return (
     <section aria-label="Suivi des marchés" className="py-4 bg-gradient-to-r from-slate-50 to-blue-50/30 backdrop-blur border-y border-slate-200/60">
       <div className="container mx-auto max-w-7xl px-4 overflow-x-auto">
+        {title && (
+          <div className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">{title}</div>
+        )}
         {!items && !error && (
           <div className="flex gap-8 animate-pulse">
             {[...Array(15)].map((_, i) => (

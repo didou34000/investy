@@ -90,6 +90,7 @@ export async function GET() {
         updatedAt: ts,
         isEur: meta.convertToEur || key === "CAC40",
         url: meta.url,
+        category,
         logo: resolveLogo({ 
           symbol: logoSymbol, 
           category: category as any, 

@@ -6,6 +6,7 @@ export interface NewsItem {
   id: string;                 // hash URL
   sourceId: string;           // 'cnbc' etc.
   sourceName: string;
+  sourceLogo?: string;        // optional logo path for UI
   url: string;
   title: string;
   summary: string;            // FR
