@@ -1,0 +1,46 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F8FAFC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E2E8F0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="100" cy="100" r="40" fill="#3B82F6" opacity="0.1"/>
+  <circle cx="1100" cy="530" r="60" fill="#10B981" opacity="0.1"/>
+  <circle cx="200" cy="500" r="30" fill="#F59E0B" opacity="0.1"/>
+  
+  <!-- Main content area -->
+  <rect x="100" y="150" width="1000" height="330" rx="20" fill="white" stroke="#E2E8F0" stroke-width="2"/>
+  
+  <!-- Logo/Icon -->
+  <rect x="150" y="200" width="80" height="80" rx="16" fill="url(#accent)"/>
+  <text x="190" y="250" text-anchor="middle" fill="white" font-family="Inter, sans-serif" font-size="40" font-weight="bold">💼</text>
+  
+  <!-- Title -->
+  <text x="280" y="240" fill="#0F172A" font-family="Inter, sans-serif" font-size="48" font-weight="bold">Investy</text>
+  <text x="280" y="280" fill="#64748B" font-family="Inter, sans-serif" font-size="24">L'investissement expliqué simplement</text>
+  
+  <!-- Features -->
+  <g transform="translate(150, 320)">
+    <text x="0" y="0" fill="#3B82F6" font-family="Inter, sans-serif" font-size="20" font-weight="600">📊 Profil investisseur personnalisé</text>
+    <text x="0" y="30" fill="#3B82F6" font-family="Inter, sans-serif" font-size="20" font-weight="600">📈 Suivi d'actifs en temps réel</text>
+    <text x="0" y="60" fill="#3B82F6" font-family="Inter, sans-serif" font-size="20" font-weight="600">🔔 Alertes intelligentes</text>
+  </g>
+  
+  <!-- CTA -->
+  <rect x="800" y="350" width="200" height="50" rx="25" fill="url(#accent)"/>
+  <text x="900" y="380" text-anchor="middle" fill="white" font-family="Inter, sans-serif" font-size="18" font-weight="600">Commencer →</text>
+  
+  <!-- Disclaimer -->
+  <text x="100" y="580" fill="#64748B" font-family="Inter, sans-serif" font-size="14">Plateforme d'éducation financière • Non-conseil en investissement</text>
+</svg>
