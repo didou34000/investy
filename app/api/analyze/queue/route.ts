@@ -7,11 +7,21 @@ export const revalidate = 0;
  * Traite une queue d'articles pour analyse
  */
 export async function POST() {
+  return handleQueue();
+}
+
+// Vercel Cron déclenche en GET → on branche la même logique
+export async function GET() {
+  return handleQueue();
+}
+
+async function handleQueue() {
   try {
     const batchSize = parseInt(process.env.ANALYSIS_BATCH || '25');
     
     // Récupérer les articles récents
-    const newsResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3005'}/api/news/raw?limit=${batchSize * 3}`);
+    const base = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3005');
+    const newsResponse = await fetch(`${base}/api/news/raw?limit=${batchSize * 3}`);
     if (!newsResponse.ok) {
       throw new Error('Erreur récupération articles');
     }
@@ -49,7 +59,7 @@ export async function POST() {
     const analysisPromises = articlesToAnalyze.map(article => 
       limit(async () => {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3005'}/api/analyze/article`, {
+          const response = await fetch(`${base}/api/analyze/article`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ article }),
