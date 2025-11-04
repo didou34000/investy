@@ -8,6 +8,7 @@ const links = [
   { href: "/", label: "Accueil" },
   { href: "/actu", label: "Actu" },
   { href: "/analyses", label: "Analyses" },
+  { href: "/suivi-actifs", label: "Suivi actifs" },
 ];
 
 export default function Header() {
@@ -40,6 +41,8 @@ export default function Header() {
     </header>
   );
 }
+
+
 
 
 

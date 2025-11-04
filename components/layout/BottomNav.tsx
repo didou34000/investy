@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Newspaper, BarChart3 } from "lucide-react";
+import { Home, Newspaper, BarChart3, Star } from "lucide-react";
 
 const items = [
   { href: "/", label: "Accueil", Icon: Home },
   { href: "/actu", label: "Actu", Icon: Newspaper },
   { href: "/analyses", label: "Analyses", Icon: BarChart3 },
+  { href: "/suivi-actifs", label: "Suivi", Icon: Star },
 ];
 
 export default function BottomNav() {
@@ -19,7 +20,7 @@ export default function BottomNav() {
       aria-label="Navigation mobile"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <ul className="grid grid-cols-3">
+      <ul className="grid grid-cols-4">
         {items.map(({ href, label, Icon }) => {
           const active = pathname === href || (href !== "/" && pathname?.startsWith(href));
           return (
@@ -39,6 +40,8 @@ export default function BottomNav() {
     </nav>
   );
 }
+
+
 
 
 

@@ -11,6 +11,7 @@ const links = [
   { href: "/quiz", label: "Quiz" },
   { href: "/actu", label: "Actu" },
   { href: "/analyses", label: "Analyses" },
+  { href: "/suivi-actifs", label: "Suivi actifs" },
 ];
 
 export default function NavBarMinimal() {
