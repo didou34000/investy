@@ -13,10 +13,14 @@ import crypto from 'node:crypto';
 
 export const revalidate = 0;
 
-// Initialisation OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialisation OpenAI (lazy - seulement si nécessaire et disponible)
+function getOpenAI() {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return null; // Pas de clé = pas de LLM, on utilisera les fallbacks
+  }
+  return new OpenAI({ apiKey });
+}
 
 /**
  * Analyse un article individuel
@@ -58,21 +62,28 @@ export async function POST(req: NextRequest) {
     
     // Classification de pertinence
     if (process.env.USE_LLM_CLASSIFY === 'true') {
-      try {
-        const classifierPrompt = buildClassifierPrompt(articleForLLM);
-        const classifierResponse = await openai.chat.completions.create({
-          ...CLASSIFIER_OPTIONS,
-          messages: [{ role: 'user', content: classifierPrompt }],
-        });
-        
-        const classifierResult = JSON.parse(
-          cleanLLMResponse(classifierResponse.choices[0]?.message?.content || '{}')
-        );
-        
-        isRelevant = classifierResult.relevant === true;
-      } catch (error) {
-        console.warn('Erreur classification LLM:', error);
-        // Fallback heuristique
+      const openai = getOpenAI();
+      if (openai) {
+        try {
+          const classifierPrompt = buildClassifierPrompt(articleForLLM);
+          const classifierResponse = await openai.chat.completions.create({
+            ...CLASSIFIER_OPTIONS,
+            messages: [{ role: 'user', content: classifierPrompt }],
+          });
+          
+          const classifierResult = JSON.parse(
+            cleanLLMResponse(classifierResponse.choices[0]?.message?.content || '{}')
+          );
+          
+          isRelevant = classifierResult.relevant === true;
+        } catch (error) {
+          console.warn('Erreur classification LLM:', error);
+          // Fallback heuristique
+          isRelevant = metadata.cleanedSnippet.length >= 180 && 
+                      (/\d+%|\$|\€|prix|volume|bénéfice|chiffre/i.test(metadata.cleanedSnippet));
+        }
+      } else {
+        // Pas de clé OpenAI = fallback heuristique
         isRelevant = metadata.cleanedSnippet.length >= 180 && 
                     (/\d+%|\$|\€|prix|volume|bénéfice|chiffre/i.test(metadata.cleanedSnippet));
       }
@@ -88,25 +99,39 @@ export async function POST(req: NextRequest) {
     
     // Analyse LLM
     if (process.env.USE_LLM_ANALYZE === 'true') {
-      try {
-        const analyzePrompt = buildAnalyzePrompt(articleForLLM);
-        const analyzeResponse = await openai.chat.completions.create({
-          ...ANALYZER_OPTIONS,
-          messages: [{ role: 'user', content: analyzePrompt }],
-        });
-        
-        const rawAnalysis = cleanLLMResponse(analyzeResponse.choices[0]?.message?.content || '{}');
-        llmAnalysis = AnalyseLLMSchema.parse(JSON.parse(rawAnalysis));
-        
-        if (!llmAnalysis.relevant) {
-          return NextResponse.json({ discarded: true, reason: llmAnalysis.reason });
+      const openai = getOpenAI();
+      if (openai) {
+        try {
+          const analyzePrompt = buildAnalyzePrompt(articleForLLM);
+          const analyzeResponse = await openai.chat.completions.create({
+            ...ANALYZER_OPTIONS,
+            messages: [{ role: 'user', content: analyzePrompt }],
+          });
+          
+          const rawAnalysis = cleanLLMResponse(analyzeResponse.choices[0]?.message?.content || '{}');
+          llmAnalysis = AnalyseLLMSchema.parse(JSON.parse(rawAnalysis));
+          
+          if (!llmAnalysis.relevant) {
+            return NextResponse.json({ discarded: true, reason: llmAnalysis.reason });
+          }
+        } catch (error) {
+          console.warn('Erreur analyse LLM:', error);
+          // Fallback stub
+          llmAnalysis = {
+            relevant: true,
+            reason: 'Analyse automatique (fallback)',
+            primaryTopic: metadata.categoryHints[0] || 'Marchés financiers',
+            affectedAssets: [],
+            macroTags: metadata.categoryHints,
+            notes: metadata.cleanedSnippet.slice(0, 200) + '...',
+            sources: [article.sourceName],
+          };
         }
-      } catch (error) {
-        console.warn('Erreur analyse LLM:', error);
-        // Fallback stub
+      } else {
+        // Pas de clé OpenAI = fallback stub
         llmAnalysis = {
           relevant: true,
-          reason: 'Analyse automatique',
+          reason: 'Analyse automatique (OpenAI non configuré)',
           primaryTopic: metadata.categoryHints[0] || 'Marchés financiers',
           affectedAssets: [],
           macroTags: metadata.categoryHints,
