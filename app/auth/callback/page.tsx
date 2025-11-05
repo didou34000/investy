@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
-// Disable prerendering to avoid CSR bailout warning with useSearchParams
+// Disable prerendering to avoid CSR bailout warning
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default function AuthCallbackPage() {
   const router = useRouter();
