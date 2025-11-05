@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-
-// TODO: Implémenter runSingleSubscription au Step 4
-// import { runSingleSubscription } from "@/lib/subscriptionRunner";
+import { runSingleSubscription } from "@/jobs/run_single_subscription";
 
 export async function POST(
   _: Request,
@@ -27,8 +25,6 @@ export async function POST(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  // TODO: Décommenter et utiliser quand runSingleSubscription sera créée au Step 4
-  /*
   try {
     const result = await runSingleSubscription(sub, { trigger: "manual" });
     return NextResponse.json({ ok: true, result });
@@ -38,13 +34,5 @@ export async function POST(
       { status: 500 }
     );
   }
-  */
-
-  // Placeholder pour l'instant
-  return NextResponse.json({
-    ok: true,
-    message: "Route prête - runSingleSubscription sera implémentée au Step 4",
-    subscription_id: params.id,
-  });
 }
 
