@@ -1,8 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { advanceFrom } from "@/lib/subscription";
-
-// Simple email sender wrapper. Uses Resend if available, otherwise logs.
-import { Resend } from "resend";
+import { sendDigestEmail } from "@/lib/notify";
 
 type Digest = {
   symbol: string;
@@ -11,23 +9,6 @@ type Digest = {
   last_price: number | null;
   news: any[];
 };
-
-async function sendDigestEmail({ to, subject, digest }: { to: string; subject: string; digest: Digest }) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key || key === "your_resend_api_key_here") {
-    console.log(`📧 [SIMULATION] Email → ${to}: ${subject}`, digest);
-    return { success: true, simulated: true } as const;
-  }
-  const resend = new Resend(key);
-  const html = `<html><body>
-    <h2>${subject}</h2>
-    <p>Date: ${digest.date}</p>
-    <p>Symbol: <strong>${digest.symbol}</strong></p>
-    <pre style="background:#f7fafc;padding:12px;border-radius:8px">${JSON.stringify(digest.signal, null, 2)}</pre>
-  </body></html>`;
-  await resend.emails.send({ from: "Investy <noreply@investy.ai>", to, subject, html });
-  return { success: true } as const;
-}
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY)!;
