@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 // Disable prerendering to avoid CSR bailout warning with useSearchParams
@@ -10,7 +10,6 @@ export const revalidate = 0;
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
 
   useEffect(() => {
@@ -25,8 +24,10 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        // Récupérer le plan_code depuis l'URL
-        const planCode = searchParams.get("plan") || "free";
+        // Récupérer le plan_code depuis l'URL (client-only)
+        const planCode = typeof window !== 'undefined'
+          ? (new URLSearchParams(window.location.search).get("plan") || "free")
+          : "free";
 
         // Assigner le plan via l'API
         const response = await fetch("/api/choose-plan", {
@@ -53,7 +54,7 @@ export default function AuthCallbackPage() {
     };
 
     handleCallback();
-  }, [router, searchParams]);
+  }, [router]);
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-50">
