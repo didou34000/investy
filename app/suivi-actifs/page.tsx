@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StartFreeButton from "@/components/StartFreeButton";
 import {
   Check,
   Star,
@@ -91,12 +92,7 @@ export default function SuiviActifsPage() {
                 <FeatureItem key={f.text} icon={f.icon}>{f.text}</FeatureItem>
               ))}
             </ul>
-            <Link
-              href="/auth?plan=free"
-              className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-white transition hover:bg-slate-800"
-            >
-              Commencer gratuitement
-            </Link>
+            <StartFreeButton />
           </div>
 
           {/* Standard (featured) */}
