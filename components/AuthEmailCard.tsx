@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function AuthEmailCard({ onSuccess }:{ onSuccess?:()=>void }){
+export default function AuthEmailCard({ onSuccess, planCode = "free" }:{ onSuccess?:()=>void; planCode?: string }){
   const [email,setEmail]=useState("");
   const [sent,setSent]=useState(false);
   const [loading, setLoading] = useState(false);
@@ -15,10 +15,14 @@ export default function AuthEmailCard({ onSuccess }:{ onSuccess?:()=>void }){
     
     setLoading(true);
     try {
+      // Passer le plan_code dans la redirection pour l'assigner après connexion
+      const redirectUrl = new URL(`${window.location.origin}/auth/callback`);
+      redirectUrl.searchParams.set("plan", planCode);
+      
       const { error } = await supabase.auth.signInWithOtp({ 
         email, 
         options:{ 
-          emailRedirectTo: `${window.location.origin}/dashboard` 
+          emailRedirectTo: redirectUrl.toString()
         }
       });
       

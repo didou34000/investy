@@ -66,7 +66,7 @@ export default function AuthPage({ searchParams }: { searchParams: { [key: strin
             <h1 className="text-xl font-semibold text-slate-900">Connexion ou création de compte</h1>
             <p className="mt-1 text-sm text-slate-600">Recevez un lien sécurisé par email. Pas de mot de passe requis.</p>
             <div className="mt-4">
-              <AuthEmailCard />
+              <AuthEmailCard planCode={plan.toLowerCase()} />
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
