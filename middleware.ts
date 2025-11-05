@@ -21,8 +21,12 @@ const PROTECTED_API_ROUTES = [
 // Clé API pour l'authentification
 const API_KEY = process.env.API_KEY || 'your-secret-api-key-here'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const res = NextResponse.next();
+
+  // Note: La synchronisation Supabase se fait dans les routes API via createServerComponentClient
+  // Le middleware ne peut pas utiliser cookies() directement, donc on laisse les routes gérer la session
 
   // Vérifier si c'est une route API protégée
   const isProtectedRoute = PROTECTED_API_ROUTES.some(route => 
@@ -41,11 +45,14 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next()
+  return res
 }
 
 export const config = {
   matcher: [
-    '/api/((?!health|ingest|cron).*)', // Toutes les routes API sauf /api/health, /api/ingest et /api/cron
+    // Routes API protégées
+    '/api/((?!health|ingest|cron).*)',
+    // Toutes les autres routes (pour la sync Supabase)
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ]
 }
