@@ -31,7 +31,7 @@ export default function FollowPage() {
     try {
       const res = await fetch("/api/subscriptions");
       if (res.status === 401) {
-        router.push("/auth?plan=free");
+        router.replace("/auth?plan=free");
         return;
       }
       const json = await res.json();

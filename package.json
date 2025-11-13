@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NEXT_DISABLE_TURBOPACK=1 next dev -p 3005",
+    "dev": "cross-env NEXT_DISABLE_TURBOPACK=1 next dev -p 3005",
     "build": "next build",
     "build:prod": "ESLINT_CONFIG_PATH=.eslintrc.production.json next build",
     "start": "next start",
@@ -55,6 +55,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "postcss": "^8.5.6",

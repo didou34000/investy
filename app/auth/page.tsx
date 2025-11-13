@@ -1,83 +1,161 @@
-import Link from "next/link";
-import AuthEmailCard from "@/components/AuthEmailCard";
-import { Check, ArrowLeft } from "lucide-react";
+"use client";
 
-export const metadata = {
-  title: "Connexion / Création de compte | Investy",
-  description: "Connectez-vous ou créez votre compte pour suivre vos actifs.",
-};
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
-const planMeta: Record<string, { name: string; perks: string[]; color: string }> = {
-  free: {
-    name: "Gratuit",
-    perks: ["1 actif suivi", "Mise à jour quotidienne", "Recommandations éducatives"],
-    color: "bg-slate-900",
-  },
-  standard: {
-    name: "Standard",
-    perks: ["10 actifs suivis", "Mises à jour quotidiennes", "Alertes basiques"],
-    color: "bg-blue-600",
-  },
-  pro: {
-    name: "Pro",
-    perks: ["Actifs illimités", "Mises à jour intrajournalières", "Alertes intelligentes"],
-    color: "bg-amber-500",
-  },
-};
+type Status = "checking" | "idle" | "loading" | "sent" | "error";
 
-export default function AuthPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
-  const planParam = searchParams?.plan;
-  const plan = (Array.isArray(planParam) ? planParam[0] : planParam) || "free";
-  const meta = planMeta[plan.toLowerCase()] ?? planMeta.free;
+export default function AuthPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const plan = searchParams.get("plan"); // ex: free, standard, pro
+
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<Status>("checking");
+  const [error, setError] = useState<string | null>(null);
+
+  // 🔹 Étape 1 : vérifier si l'utilisateur est déjà connecté
+  useEffect(() => {
+    let mounted = true;
+
+    const checkSession = async () => {
+      // Vérifier la session côté client
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+
+      if (!session) {
+        // pas connecté → on montre le formulaire
+        if (mounted) {
+          setStatus("idle");
+        }
+        return;
+      }
+
+      // Vérifier que la session est valide côté serveur
+      try {
+        const res = await fetch("/api/subscriptions");
+        if (res.status === 401) {
+          // Session invalide côté serveur → on montre le formulaire
+          if (mounted) {
+            setStatus("idle");
+          }
+          return;
+        }
+
+        // Session valide → on peut rediriger
+        if (mounted) {
+          try {
+            // si un plan est passé dans l'URL, on le choisit
+            if (plan) {
+              await fetch("/api/choose-plan", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  plan_code: plan, // "free", "standard", "pro" etc.
+                }),
+              });
+            }
+          } catch (e) {
+            console.error("Erreur sur /api/choose-plan :", e);
+            // on ne bloque pas pour autant
+          }
+
+          // une fois le plan assigné (ou pas), on va sur le dashboard
+          router.replace("/dashboard/follow");
+        }
+      } catch (e) {
+        console.error("Erreur vérification session serveur :", e);
+        if (mounted) {
+          setStatus("idle");
+        }
+      }
+    };
+
+    checkSession();
+
+    return () => {
+      mounted = false;
+    };
+    // ⚠️ on ne met pas "plan" en dépendance pour éviter de rerun en boucle
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
+
+  // 🔹 Étape 2 : si on est encore en train de vérifier la session
+  if (status === "checking") {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <p className="text-sm text-gray-700">Vérification de la session...</p>
+      </div>
+    );
+  }
+
+  // 🔹 Étape 3 : formulaire d'email (user non connecté)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("loading");
+    setError(null);
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      // on ne met pas emailRedirectTo → Supabase utilisera le Site URL ( /auth )
+    });
+
+    if (error) {
+      console.error(error);
+      setError(error.message);
+      setStatus("error");
+      return;
+    }
+
+    setStatus("sent");
+  };
 
   return (
-    <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto grid gap-8 lg:grid-cols-2 items-start">
-        {/* Left: Plan summary */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <Link href="/suivi-actifs" className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Retour aux plans
-          </Link>
-          <div className="mt-4 flex items-center gap-3">
-            <div className={`h-9 w-9 rounded-lg ${meta.color} text-white inline-flex items-center justify-center font-semibold`}>
-              {meta.name[0]}
-            </div>
-            <div>
-              <div className="text-sm text-slate-500">Vous avez choisi</div>
-              <div className="text-lg font-semibold text-slate-900">Plan {meta.name}</div>
-            </div>
-          </div>
-          <ul className="mt-4 space-y-2">
-            {meta.perks.map((p) => (
-              <li key={p} className="flex items-start gap-2 text-sm text-slate-700">
-                <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-1 ring-blue-100">
-                  <Check className="h-3.5 w-3.5" aria-hidden={true} />
-                </span>
-                <span>{p}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-xs text-slate-500">Vous pourrez changer de plan plus tard.</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-md space-y-6">
+        <h1 className="text-2xl font-semibold text-center">
+          Connexion à Investy
+        </h1>
 
-        {/* Right: Auth */}
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h1 className="text-xl font-semibold text-slate-900">Connexion ou création de compte</h1>
-            <p className="mt-1 text-sm text-slate-600">Recevez un lien sécurisé par email. Pas de mot de passe requis.</p>
-            <div className="mt-4">
-              <AuthEmailCard planCode={plan.toLowerCase()} />
-            </div>
+        {status === "sent" ? (
+          <div className="p-4 rounded-lg border text-sm">
+            📩 Un lien de connexion t'a été envoyé.
+            <br />
+            Clique dessus dans tes mails pour te connecter.
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="text-sm text-slate-600">
-              En vous connectant, vous acceptez nos <Link href="/legal" className="underline hover:text-slate-900">conditions</Link> et notre <Link href="/legal" className="underline hover:text-slate-900">politique de confidentialité</Link>.
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="toi@exemple.com"
+              />
             </div>
-          </div>
-        </div>
+
+            {error && (
+              <p className="text-sm text-red-500">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={status === "loading"}
+              className="w-full rounded-md px-3 py-2 text-sm font-medium border bg-black text-white disabled:opacity-60"
+            >
+              {status === "loading" ? "Envoi..." : "Envoyer le lien magique"}
+            </button>
+          </form>
+        )}
       </div>
-    </main>
+    </div>
   );
 }
-
-
