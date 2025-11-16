@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Play, Pause, Trash2, Plus } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 type Subscription = {
   id: string;
@@ -16,22 +17,117 @@ type Subscription = {
 
 export default function FollowPage() {
   const router = useRouter();
+  const [user, setUser] = useState<any | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [symbol, setSymbol] = useState("");
   const [hour, setHour] = useState(8);
   const [minute, setMinute] = useState(0);
+  const hasRedirectedRef = useRef(false);
+
+  // Garde d'authentification - VERSION SIMPLIFIÉE ET ROBUSTE
+  useEffect(() => {
+    let mounted = true;
+
+    const checkAuth = async () => {
+      // Vérifier si on vient de /auth (redirection récente)
+      const redirectTimestamp = sessionStorage.getItem("auth_redirect_timestamp");
+      const comingFromAuth = redirectTimestamp !== null;
+      const timeSinceRedirect = redirectTimestamp ? Date.now() - parseInt(redirectTimestamp) : Infinity;
+      
+      // Si on vient de /auth, attendre plus longtemps
+      const waitTime = comingFromAuth && timeSinceRedirect < 10000 ? 2500 : 800;
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      
+      if (!mounted) return;
+
+      // Vérifier la session plusieurs fois si on vient de /auth
+      let session = null;
+      const maxAttempts = comingFromAuth ? 5 : 2;
+      
+      for (let i = 0; i < maxAttempts; i++) {
+        if (!mounted) return;
+        
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("getSession error", error);
+          break;
+        }
+        
+        session = data.session;
+        if (session && session.user) {
+          break; // Session trouvée
+        }
+        
+        // Attendre avant le prochain essai
+        if (i < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
+      
+      if (!mounted) return;
+
+      if (session && session.user) {
+        // ✅ Session valide
+        setUser(session.user);
+        setLoadingUser(false);
+        sessionStorage.removeItem("auth_redirect_timestamp");
+      } else {
+        // ❌ Pas de session après tous les essais
+        setLoadingUser(false);
+        sessionStorage.removeItem("auth_redirect_timestamp");
+        
+        // Ne rediriger QUE si on n'a pas déjà redirigé récemment (évite les boucles)
+        if (!hasRedirectedRef.current && timeSinceRedirect > 5000) {
+          hasRedirectedRef.current = true;
+          router.replace("/auth");
+        }
+      }
+    };
+
+    checkAuth();
+
+    // Écouter les changements d'auth
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      
+      if (event === "SIGNED_IN" && session && session.user) {
+        setUser(session.user);
+        setLoadingUser(false);
+        sessionStorage.removeItem("auth_redirect_timestamp");
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+        setLoadingUser(false);
+        sessionStorage.removeItem("auth_redirect_timestamp");
+        if (!hasRedirectedRef.current) {
+          hasRedirectedRef.current = true;
+          router.replace("/auth");
+        }
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   useEffect(() => {
-    loadSubscriptions();
-  }, []);
+    if (user) {
+      loadSubscriptions();
+    }
+  }, [user]);
 
   async function loadSubscriptions() {
     try {
       const res = await fetch("/api/subscriptions");
       if (res.status === 401) {
-        router.replace("/auth?plan=free");
+        // Ne pas rediriger ici, on laisse le useEffect principal gérer
+        setLoading(false);
         return;
       }
       const json = await res.json();
@@ -71,7 +167,6 @@ export default function FollowPage() {
         return;
       }
 
-      // Réinitialiser le formulaire et recharger la liste
       setSymbol("");
       await loadSubscriptions();
     } catch (e: any) {
@@ -100,6 +195,26 @@ export default function FollowPage() {
     }
   }
 
+  if (loadingUser) {
+    return (
+      <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <p className="p-4 text-sm">Chargement...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <p className="p-4 text-sm">Vérification de la session...</p>
+        </div>
+      </main>
+    );
+  }
+
   if (loading) {
     return (
       <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
@@ -113,6 +228,9 @@ export default function FollowPage() {
   return (
     <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
+        <p className="text-sm text-gray-600 mb-4">
+          Connecté en tant que {user.email}
+        </p>
         <h1 className="text-3xl font-bold text-slate-900 mb-8">Suivi d'actifs</h1>
 
         {/* Formulaire de création */}
@@ -239,4 +357,3 @@ export default function FollowPage() {
     </main>
   );
 }
-

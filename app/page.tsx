@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { RingChart } from "@/components/RingChart";
 import { ArrowRight, TrendingUp, Shield } from "lucide-react";
@@ -14,10 +15,23 @@ import AssetExplorer from "@/components/AssetExplorer";
 import Storyline from "@/components/Storyline";
 import MarketStrip from "@/components/MarketStrip";
 import EduAlerts from "@/components/EduAlerts";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function Home() {
+  const router = useRouter();
   const cta = getFlag("ff_cta_copy", "A") as string;
   const ctaText = cta === "B" ? "Découvrez votre profil maintenant" : "Commencer le quiz";
+  
+  // Détecter le token dans le hash et rediriger vers /auth
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("access_token=")) {
+      // Token détecté -> rediriger vers /auth qui gérera la connexion
+      router.replace(`/auth${hash}`);
+    }
+    // On ne vérifie pas la session ici pour éviter les redirections multiples
+    // La page /auth s'en charge
+  }, [router]);
   
   // Track flag exposure only once
   useEffect(() => {
@@ -39,7 +53,7 @@ export default function Home() {
           loop
           muted
           playsInline
-          poster="/og-cover.png"
+          poster="/og-cover.svg"
           onError={(e) => {
             // Fallback si la vidéo ne charge pas
             e.currentTarget.style.display = 'none';

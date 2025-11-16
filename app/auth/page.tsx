@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -11,23 +11,76 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("checking");
   const [error, setError] = useState<string | null>(null);
+  const hasRedirectedRef = useRef(false);
 
-  // 1) Au chargement, on regarde s'il existe déjà une session
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      const session = data.session;
+    // Vérifier si le hash contient un access_token (magic link)
+    const hash = window.location.hash;
+    const hasAccessToken = hash.includes("access_token=");
 
-      if (session) {
-        // Si déjà connecté -> dashboard
-        router.replace("/dashboard/follow");
-      } else {
-        // Sinon on affiche le formulaire
+    const redirectToDashboard = () => {
+      if (hasRedirectedRef.current) return;
+      hasRedirectedRef.current = true;
+      
+      // Nettoyer le hash
+      if (hasAccessToken) {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+      
+      // Marquer qu'on vient de rediriger (avec timestamp pour expiration)
+      sessionStorage.setItem("auth_redirect_timestamp", Date.now().toString());
+      
+      router.replace("/dashboard/follow");
+    };
+
+    const checkSession = async () => {
+      try {
+        // Si on a un hash avec access_token, attendre que Supabase le traite
+        if (hasAccessToken) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          setStatus("idle");
+          return;
+        }
+
+        const session = data.session;
+
+        // Ne rediriger QUE si on a un token dans le hash OU si on a une session valide
+        // ET qu'on n'a pas déjà redirigé récemment (évite les boucles)
+        const lastRedirect = sessionStorage.getItem("auth_redirect_timestamp");
+        const timeSinceRedirect = lastRedirect ? Date.now() - parseInt(lastRedirect) : Infinity;
+        
+        if (session && session.user && (hasAccessToken || timeSinceRedirect > 5000)) {
+          // Attendre un peu pour s'assurer que la session est bien établie
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          redirectToDashboard();
+        } else {
+          setStatus("idle");
+        }
+      } catch (e) {
         setStatus("idle");
       }
     };
 
     checkSession();
+
+    // Écouter les changements d'auth
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session && session.user && !hasRedirectedRef.current) {
+        setTimeout(() => {
+          redirectToDashboard();
+        }, 300);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   if (status === "checking") {
@@ -38,7 +91,6 @@ export default function AuthPage() {
     );
   }
 
-  // 2) Formulaire pour envoyer le lien magique
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("loading");
@@ -46,11 +98,9 @@ export default function AuthPage() {
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      // pas de emailRedirectTo -> Supabase utilisera le Site URL (/auth)
     });
 
     if (error) {
-      console.error(error);
       setError(error.message);
       setStatus("error");
       return;
@@ -70,7 +120,7 @@ export default function AuthPage() {
           <div className="p-4 rounded-lg border text-sm">
             📩 Un lien de connexion t'a été envoyé.
             <br />
-            Clique dessus dans tes mails pour te connecter.
+            Va dans ta boîte mail et clique dessus.
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">

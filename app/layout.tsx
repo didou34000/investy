@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: "Investy",
     images: [
       {
-        url: "/og-cover.png",
+        url: "/og-cover.svg",
         width: 1200,
         height: 630,
         alt: "Investy - Plateforme d'éducation financière",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Investy — L'investissement expliqué simplement",
     description: "Découvrez votre profil investisseur, suivez vos actifs et apprenez à investir intelligemment.",
-    images: ["/og-cover.png"],
+    images: ["/og-cover.svg"],
   },
   robots: {
     index: true,

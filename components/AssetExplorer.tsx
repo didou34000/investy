@@ -110,7 +110,9 @@ const ASSETS: Asset[] = [
 
 export default function AssetExplorer(){
   const [active, setActive] = useState<AssetKey>("actions");
-  const [seed, setSeed] = useState<number>(() => Math.floor(Math.random()*1e9));
+  const [mounted, setMounted] = useState(false);
+  // Fixer le seed initial pour éviter l'erreur d'hydratation
+  const [seed, setSeed] = useState<number>(123456789);
   const current = useMemo(()=> ASSETS.find(a=>a.key===active)!, [active]);
 
   function formatPct(x:number) {
@@ -130,7 +132,33 @@ export default function AssetExplorer(){
   const cagr = useMemo(()=> computeCAGR(series, 10), [series]);
   const mdd  = useMemo(()=> computeMaxDrawdown(series), [series]);
 
-  useEffect(()=>{ /* focus visuel optionnel au changement */ }, [active]);
+  useEffect(()=>{ 
+    setMounted(true);
+    /* focus visuel optionnel au changement */ 
+  }, [active]);
+
+  // Éviter l'erreur d'hydratation : ne rien rendre côté serveur
+  if (!mounted) {
+    return (
+      <section aria-labelledby="assets-title" className="py-16">
+        <div className="container mx-auto max-w-6xl px-4">
+          <h2 id="assets-title" className="text-3xl md:text-4xl font-semibold text-center mb-10">Grandes familles d'actifs</h2>
+          <div className="grid md:grid-cols-[280px,1fr] gap-6">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-2 animate-pulse">
+              <div className="h-12 bg-slate-200 rounded-xl mb-2" />
+              <div className="h-12 bg-slate-200 rounded-xl mb-2" />
+              <div className="h-12 bg-slate-200 rounded-xl mb-2" />
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 animate-pulse">
+              <div className="h-8 bg-slate-200 rounded mb-4" />
+              <div className="h-24 bg-slate-200 rounded mb-4" />
+              <div className="h-40 bg-slate-200 rounded" />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="assets-title" className="py-16">

@@ -20,6 +20,7 @@ export default function MarketStrip({ category, title }: { category?: string; ti
   const [items, setItems] = useState<Item[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   async function load() {
     try {
@@ -36,6 +37,7 @@ export default function MarketStrip({ category, title }: { category?: string; ti
   }
 
   useEffect(() => {
+    setMounted(true);
     load();
     const id = setInterval(load, 30000); // refresh 30s
     return () => clearInterval(id);
@@ -56,6 +58,24 @@ export default function MarketStrip({ category, title }: { category?: string; ti
 
     return () => clearInterval(scrollInterval);
   }, [items]);
+
+  // Éviter l'erreur d'hydratation : ne rien rendre côté serveur
+  if (!mounted) {
+    return (
+      <section aria-label="Suivi des marchés" className="py-4 bg-gradient-to-r from-slate-50 to-blue-50/30 backdrop-blur border-y border-slate-200/60">
+        <div className="container mx-auto max-w-7xl px-4 overflow-x-auto">
+          <div className="flex gap-8 animate-pulse">
+            {[...Array(15)].map((_, i) => (
+              <div key={i} className="min-w-[200px]">
+                <div className="h-3 w-20 bg-slate-200 rounded-full mb-3" />
+                <div className="h-5 w-28 bg-slate-200 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section aria-label="Suivi des marchés" className="py-4 bg-gradient-to-r from-slate-50 to-blue-50/30 backdrop-blur border-y border-slate-200/60">
