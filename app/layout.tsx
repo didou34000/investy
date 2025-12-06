@@ -22,6 +22,15 @@ export const metadata: Metadata = {
   authors: [{ name: "Invsty" }],
   creator: "Invsty",
   publisher: "Invsty",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   formatDetection: {
     email: false,
     address: false,
