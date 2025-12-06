@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  devIndicators: false,
   eslint: {
     // Désactiver ESLint pendant le build en production
     ignoreDuringBuilds: process.env.NODE_ENV === 'production',
@@ -18,19 +19,10 @@ const nextConfig = {
       { protocol: 'https', hostname: 'assets.investy-static.com' },
     ],
   },
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-        ],
-      },
-    ];
-  },
+  // Headers désactivés temporairement pour éviter les conflits
+  // async headers() {
+  //   return [];
+  // },
 };
 
 module.exports = nextConfig;

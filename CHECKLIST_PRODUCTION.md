@@ -1,4 +1,4 @@
-# 🚀 Investy - Checklist de Production
+# 🚀 Invsty - Checklist de Production
 
 ## ✅ MVP Complet - Fonctionnalités Implémentées
 
@@ -31,7 +31,7 @@
 ### 📧 **Email & Communication**
 - [x] **Email de bienvenue** - Template HTML professionnel
 - [x] **Alertes personnalisées** - Basées sur profil utilisateur
-- [x] **Templates email** - Branded avec Investy
+- [x] **Templates email** - Branded avec Invsty
 - [x] **Désinscription** - Liens dans tous les emails
 
 ### 🛡️ **Sécurité & Légal**
@@ -130,6 +130,6 @@ GOOGLE_SITE_VERIFICATION=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ---
 
-**Investy est prêt pour la production ! 🎉**
+**Invsty est prêt pour la production ! 🎉**
 
 *Plateforme d'éducation financière complète, sécurisée et optimisée.*

@@ -1,202 +1,94 @@
 "use client";
-import { useEffect, useState } from "react";
-import AssetLogo from "@/components/ui/AssetLogo";
 
-type Item = {
-  key: string;
-  label: string;
+import { TrendingUp, TrendingDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface Quote {
   symbol: string;
-  dp: number;
-  price: number | null;
-  changePct: number | null;
-  updatedAt: string | null;
-  isEur?: boolean;
-  url?: string;
-  logo?: string | null;
-  category?: string;
-};
+  name: string;
+  price: number;
+  change: number;
+  logo: string;
+  color: string;
+}
 
-export default function MarketStrip({ category, title }: { category?: string; title?: string }) {
-  const [items, setItems] = useState<Item[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [scrollPosition, setScrollPosition] = useState(0);
-  const [mounted, setMounted] = useState(false);
+const QUOTES: Quote[] = [
+  { symbol: "AAPL", name: "Apple", price: 189.43, change: 1.23, logo: "", color: "#000000" },
+  { symbol: "GOOGL", name: "Google", price: 175.98, change: 0.87, logo: "G", color: "#4285F4" },
+  { symbol: "MSFT", name: "Microsoft", price: 425.22, change: -0.45, logo: "M", color: "#00A4EF" },
+  { symbol: "TSLA", name: "Tesla", price: 248.50, change: 2.34, logo: "T", color: "#E31937" },
+  { symbol: "AMZN", name: "Amazon", price: 185.67, change: 0.65, logo: "a", color: "#FF9900" },
+  { symbol: "META", name: "Meta", price: 567.89, change: -1.12, logo: "M", color: "#0668E1" },
+  { symbol: "NVDA", name: "Nvidia", price: 878.34, change: 3.45, logo: "N", color: "#76B900" },
+  { symbol: "BTC", name: "Bitcoin", price: 97580, change: 2.34, logo: "₿", color: "#F7931A" },
+  { symbol: "ETH", name: "Ethereum", price: 3420, change: 1.89, logo: "Ξ", color: "#627EEA" },
+  { symbol: "CAC", name: "CAC 40", price: 7432, change: 0.45, logo: "🇫🇷", color: "#002395" },
+];
 
-  async function load() {
-    try {
-      setError(null);
-      const r = await fetch("/api/market", { cache: "no-store" });
-      const j = await r.json();
-      if (!r.ok || !j?.ok) throw new Error(j?.error || "market_fetch_error");
-      let data = j.data as Item[];
-      if (category) data = data.filter((x: Item) => x.category === category);
-      setItems(data);
-    } catch (e: any) {
-      setError(e?.message || "Erreur de récupération des marchés");
-    }
-  }
+const QUOTES_LOOP = [...QUOTES, ...QUOTES, ...QUOTES];
 
-  useEffect(() => {
-    setMounted(true);
-    load();
-    const id = setInterval(load, 30000); // refresh 30s
-    return () => clearInterval(id);
-  }, []);
-
-  // Effet de défilement automatique
-  useEffect(() => {
-    if (!items || items.length === 0) return;
-    
-    const scrollInterval = setInterval(() => {
-      setScrollPosition(prev => {
-        const itemWidth = 200; // Largeur approximative d'un item
-        const maxScroll = items.length * itemWidth;
-        const newPosition = prev + 1;
-        return newPosition >= maxScroll ? 0 : newPosition;
-      });
-    }, 30); // Vitesse de défilement (30ms)
-
-    return () => clearInterval(scrollInterval);
-  }, [items]);
-
-  // Éviter l'erreur d'hydratation : ne rien rendre côté serveur
-  if (!mounted) {
-    return (
-      <section aria-label="Suivi des marchés" className="py-4 bg-gradient-to-r from-slate-50 to-blue-50/30 backdrop-blur border-y border-slate-200/60">
-        <div className="container mx-auto max-w-7xl px-4 overflow-x-auto">
-          <div className="flex gap-8 animate-pulse">
-            {[...Array(15)].map((_, i) => (
-              <div key={i} className="min-w-[200px]">
-                <div className="h-3 w-20 bg-slate-200 rounded-full mb-3" />
-                <div className="h-5 w-28 bg-slate-200 rounded-full" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
+export default function MarketStrip() {
+  const formatPrice = (price: number) => {
+    if (price >= 1000) return price.toLocaleString("fr-FR", { maximumFractionDigits: 0 });
+    return price.toFixed(2);
+  };
 
   return (
-    <section aria-label="Suivi des marchés" className="py-4 bg-gradient-to-r from-slate-50 to-blue-50/30 backdrop-blur border-y border-slate-200/60">
-      <div className="container mx-auto max-w-7xl px-4 overflow-x-auto">
-        {title && (
-          <div className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">{title}</div>
-        )}
-        {!items && !error && (
-          <div className="flex gap-8 animate-pulse">
-            {[...Array(15)].map((_, i) => (
-              <div key={i} className="min-w-[200px]">
-                <div className="h-3 w-20 bg-slate-200 rounded-full mb-3" />
-                <div className="h-5 w-28 bg-slate-200 rounded-full" />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {error && (
-          <div className="flex items-center justify-center py-4">
-            <div className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
-              ⚠️ {error}
-            </div>
-          </div>
-        )}
-
-        {items && !error && (
-          <div className="relative overflow-hidden">
+    <div className="w-full py-4 bg-white border-y border-neutral-100 overflow-hidden">
+      <div className="relative">
+        <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10" />
+        <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10" />
+        
+        <div 
+          className="flex items-center gap-6 animate-marquee"
+          style={{ width: 'max-content' }}
+        >
+          {QUOTES_LOOP.map((q, i) => (
             <div 
-              className="flex gap-8 transition-transform duration-75 ease-linear"
-              style={{ transform: `translateX(-${scrollPosition}px)` }}
+              key={`${q.symbol}-${i}`} 
+              className="flex items-center gap-3 px-4 py-2 rounded-full bg-neutral-50 hover:bg-neutral-100 transition-colors shrink-0"
             >
-              {/* Dupliquer les items pour un défilement infini */}
-              {[...items, ...items, ...items].map((x, index) => {
-                const dp = x.dp ?? 0;
-                const val = x.price != null
-                  ? x.price.toLocaleString("fr-FR", { 
-                      maximumFractionDigits: dp,
-                      minimumFractionDigits: x.key === "EURUSD" ? 4 : 0
-                    })
-                  : "—";
-                const pct = x.changePct != null ? x.changePct : 0;
-                const pos = pct >= 0;
-                const pctTxt = (pos ? "+" : "") + pct.toFixed(2) + "%";
-                const currency = x.isEur ? "€" : x.key === "EURUSD" ? "" : "€";
-                
-                return (
-                  <div key={`${x.key}-${index}`} className="min-w-[200px] group hover:scale-105 transition-transform duration-200 flex-shrink-0">
-                    {x.url ? (
-                      <a
-                        href={x.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block cursor-pointer hover:bg-white/50 rounded-lg p-3 transition-all duration-200 hover:shadow-md"
-                        title={`Voir le cours de ${x.label} sur Yahoo Finance`}
-                      >
-                        <div className="text-xs font-medium text-slate-600 mb-2 tracking-wide flex items-center gap-1">
-                          <AssetLogo src={x.logo} label={x.label} size={16} className="mr-1"/>
-                          {x.label}
-                          <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className={`text-lg font-bold ${pos ? "text-emerald-600" : "text-rose-600"}`}>
-                            {val}{currency}
-                          </div>
-                          <div
-                            className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all duration-200 ${
-                              pos
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 shadow-emerald-100"
-                                : "bg-rose-50 text-rose-700 border-rose-200 shadow-rose-100"
-                            } ${pos ? "shadow-sm" : ""}`}
-                          >
-                            {pos ? "↗" : "↘"} {pctTxt}
-                          </div>
-                        </div>
-                      </a>
-                    ) : (
-                      <div className="block p-3">
-                        <div className="text-xs font-medium text-slate-600 mb-2 tracking-wide flex items-center gap-1">
-                          <AssetLogo src={x.logo} label={x.label} size={16} className="mr-1"/>
-                          {x.label}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className={`text-lg font-bold ${pos ? "text-emerald-600" : "text-rose-600"}`}>
-                            {val}{currency}
-                          </div>
-                          <div
-                            className={`text-xs px-2.5 py-1 rounded-full font-medium border transition-all duration-200 ${
-                              pos
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 shadow-emerald-100"
-                                : "bg-rose-50 text-rose-700 border-rose-200 shadow-rose-100"
-                            } ${pos ? "shadow-sm" : ""}`}
-                          >
-                            {pos ? "↗" : "↘"} {pctTxt}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {/* Logo */}
+              <div 
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                style={{ backgroundColor: q.color }}
+              >
+                {q.logo || q.symbol.charAt(0)}
+              </div>
+              
+              {/* Symbol */}
+              <span className="text-sm font-semibold text-neutral-900">{q.symbol}</span>
+              
+              {/* Price */}
+              <span className="text-sm text-neutral-500 tabular-nums">
+                {formatPrice(q.price)}
+              </span>
+              
+              {/* Change */}
+              <span className={cn(
+                "flex items-center gap-0.5 text-xs font-medium tabular-nums",
+                q.change >= 0 ? "text-emerald-600" : "text-red-500"
+              )}>
+                {q.change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {q.change >= 0 ? "+" : ""}{q.change.toFixed(2)}%
+              </span>
             </div>
-          </div>
-        )}
-
-        {items?.length ? (
-          <div className="flex items-center justify-center mt-4 pt-3 border-t border-slate-200/40">
-            <div className="text-xs text-slate-500 flex items-center gap-2">
-              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-              Actualisé&nbsp;: {new Date().toLocaleTimeString("fr-FR", { 
-                timeZone: "Europe/Paris",
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit"
-              })}
-            </div>
-          </div>
-        ) : null}
+          ))}
+        </div>
       </div>
-    </section>
+      
+      <style jsx>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-33.333%); }
+        }
+        .animate-marquee {
+          animation: marquee 50s linear infinite;
+        }
+        .animate-marquee:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+    </div>
   );
 }

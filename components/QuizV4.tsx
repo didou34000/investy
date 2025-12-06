@@ -60,7 +60,7 @@ export default function QuizV4() {
 
   const handleSignup = async () => {
     // Simulation d'inscription (remplacer par Supabase)
-    alert(`Compte créé pour ${name} (${email}) ! Bienvenue sur Investy 🎉`);
+    alert(`Compte créé pour ${name} (${email}) ! Bienvenue sur Invsty 🎉`);
   };
 
   return (

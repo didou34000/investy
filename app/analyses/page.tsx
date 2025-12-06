@@ -3,14 +3,41 @@
 import { useState, useEffect } from 'react';
 import { Analysis } from '@/lib/analyses/schema';
 import { AnalysisCard } from '@/components/analyses/AnalysisCard';
-import SectionHeader from "@/components/ui/SectionHeader";
-import Skeleton from "@/components/ui/Skeleton";
+import { cn } from "@/lib/utils";
+import { 
+  Search, 
+  Filter, 
+  TrendingUp, 
+  Clock, 
+  AlertCircle,
+  Sparkles,
+  RefreshCw,
+  ChevronDown,
+  Zap,
+  BarChart3,
+  Bot
+} from "lucide-react";
 
 interface AnalysisData {
   items: Analysis[];
   total: number;
   nextCursor?: string;
 }
+
+const periodOptions = [
+  { value: 'today', label: "Aujourd'hui", icon: Clock },
+  { value: 'week', label: 'Cette semaine', icon: Clock },
+  { value: 'month', label: 'Ce mois', icon: Clock },
+  { value: 'all', label: 'Toutes', icon: Clock },
+];
+
+const importanceOptions = [
+  { value: 1, label: '1+ (Toutes)', color: 'gray' },
+  { value: 2, label: '2+ (Modéré)', color: 'blue' },
+  { value: 3, label: '3+ (Important)', color: 'yellow' },
+  { value: 4, label: '4+ (Très important)', color: 'orange' },
+  { value: 5, label: '5 (Critique)', color: 'red' },
+];
 
 export default function AnalysesPage() {
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
@@ -65,149 +92,255 @@ export default function AnalysesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="container mx-auto max-w-6xl px-4 py-8">
-        <SectionHeader title="📊 Analyses de Marché" subtitle="Intelligence appliquée aux actualités financières" />
+    <div className="min-h-[calc(100vh-4rem)] py-8 px-4">
+      <div className="container mx-auto max-w-5xl">
+        
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 backdrop-blur-md border border-white/50 shadow-sm mb-6">
+            <BarChart3 className="w-4 h-4 text-[#007AFF]" />
+            <span className="text-sm font-medium text-gray-700">Intelligence IA</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight mb-3">
+            Analyses de Marché
+          </h1>
+          <p className="text-gray-500 max-w-xl mx-auto">
+            Actualités financières analysées automatiquement par notre IA pour identifier les opportunités et les risques.
+          </p>
+        </div>
+
         {/* Filters Card */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-8 shadow-sm sticky top-4 z-10">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">
-            🔍 Filtres d'analyse
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className={cn(
+          "p-6 rounded-3xl mb-8",
+          "bg-white/70 backdrop-blur-xl",
+          "border border-white/50",
+          "shadow-[0_4px_30px_rgba(0,0,0,0.06)]",
+          "sticky top-20 z-10"
+        )}>
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-8 h-8 rounded-xl bg-[#007AFF]/10 flex items-center justify-center">
+              <Filter className="w-4 h-4 text-[#007AFF]" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Filtres</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Period Filter */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Période
               </label>
-              <select 
-                value={filters.period}
-                onChange={(e) => handleFilterChange('period', e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="today">Aujourd'hui</option>
-                <option value="week">Cette semaine</option>
-                <option value="month">Ce mois</option>
-                <option value="all">Toutes</option>
-              </select>
+              <div className="relative">
+                <select 
+                  value={filters.period}
+                  onChange={(e) => handleFilterChange('period', e.target.value)}
+                  className={cn(
+                    "w-full appearance-none",
+                    "px-4 py-3 pr-10",
+                    "bg-white/60 backdrop-blur-md",
+                    "border border-black/[0.06] rounded-xl",
+                    "text-gray-900 text-sm",
+                    "transition-all duration-200",
+                    "hover:border-black/[0.1]",
+                    "focus:outline-none focus:border-[#007AFF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,122,255,0.12)]"
+                  )}
+                >
+                  {periodOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
             </div>
             
+            {/* Importance Filter */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Importance minimum
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                Importance min.
               </label>
-              <select 
-                value={filters.minImportance}
-                onChange={(e) => handleFilterChange('minImportance', parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="1">1+ (Toutes)</option>
-                <option value="2">2+ (Modéré)</option>
-                <option value="3">3+ (Important)</option>
-                <option value="4">4+ (Très important)</option>
-                <option value="5">5 (Critique)</option>
-              </select>
+              <div className="relative">
+                <select 
+                  value={filters.minImportance}
+                  onChange={(e) => handleFilterChange('minImportance', parseInt(e.target.value))}
+                  className={cn(
+                    "w-full appearance-none",
+                    "px-4 py-3 pr-10",
+                    "bg-white/60 backdrop-blur-md",
+                    "border border-black/[0.06] rounded-xl",
+                    "text-gray-900 text-sm",
+                    "transition-all duration-200",
+                    "hover:border-black/[0.1]",
+                    "focus:outline-none focus:border-[#007AFF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,122,255,0.12)]"
+                  )}
+                >
+                  {importanceOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
             </div>
             
+            {/* Search */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Recherche
               </label>
-              <input
-                type="text"
-                placeholder="Rechercher dans les analyses..."
-                value={filters.q}
-                onChange={(e) => handleFilterChange('q', e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher..."
+                  value={filters.q}
+                  onChange={(e) => handleFilterChange('q', e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  className={cn(
+                    "w-full",
+                    "pl-10 pr-4 py-3",
+                    "bg-white/60 backdrop-blur-md",
+                    "border border-black/[0.06] rounded-xl",
+                    "text-gray-900 text-sm",
+                    "placeholder:text-gray-400",
+                    "transition-all duration-200",
+                    "hover:border-black/[0.1]",
+                    "focus:outline-none focus:border-[#007AFF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,122,255,0.12)]"
+                  )}
+                />
+              </div>
             </div>
             
+            {/* Search Button */}
             <div className="flex items-end">
               <button 
                 onClick={handleSearch}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className={cn(
+                  "w-full flex items-center justify-center gap-2",
+                  "px-4 py-3 rounded-xl",
+                  "bg-[#007AFF] text-white text-sm font-semibold",
+                  "shadow-[0_2px_8px_rgba(0,122,255,0.25)]",
+                  "hover:bg-[#0066D6] hover:shadow-[0_4px_12px_rgba(0,122,255,0.3)]",
+                  "active:scale-[0.98]",
+                  "transition-all duration-200"
+                )}
               >
-                🔍 Rechercher
+                <Search className="w-4 h-4" />
+                Rechercher
               </button>
             </div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="bg-white border border-slate-200 rounded-xl p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6 text-sm text-slate-600">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-slate-900">{total}</span>
-                <span>analyses trouvées</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Période:</span>
-                <span className="font-medium">
-                  {filters.period === 'today' ? 'Aujourd\'hui' : 
-                   filters.period === 'week' ? 'Cette semaine' : 
-                   filters.period === 'month' ? 'Ce mois' : 'Toutes'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>Importance:</span>
-                <span className="font-medium">{filters.minImportance}+</span>
-              </div>
+        {/* Stats Bar */}
+        <div className={cn(
+          "flex flex-wrap items-center justify-between gap-4 mb-8",
+          "p-4 rounded-2xl",
+          "bg-white/50 backdrop-blur-md",
+          "border border-white/40"
+        )}>
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <div className="flex items-center gap-2 text-gray-600">
+              <TrendingUp className="w-4 h-4 text-[#007AFF]" />
+              <span className="font-semibold text-gray-900">{total}</span>
+              <span>analyses</span>
             </div>
-            
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span>Système actif</span>
+            <div className="h-4 w-px bg-gray-200" />
+            <div className="flex items-center gap-2 text-gray-500">
+              <Clock className="w-4 h-4" />
+              <span>
+                {filters.period === 'today' ? "Aujourd'hui" : 
+                 filters.period === 'week' ? 'Cette semaine' : 
+                 filters.period === 'month' ? 'Ce mois' : 'Toutes périodes'}
+              </span>
             </div>
+          </div>
+          
+          <div className="flex items-center gap-2 text-xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34C759] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#34C759]"></span>
+            </span>
+            <span className="text-gray-500">Analyse en temps réel</span>
           </div>
         </div>
 
         {/* Content */}
         {loading && analyses.length === 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-xl p-6">
-                <Skeleton className="h-6 w-3/4 mb-4" />
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-2/3 mb-4" />
-                <div className="flex gap-2 mb-4">
-                  <Skeleton className="h-6 w-16 rounded-md" />
-                  <Skeleton className="h-6 w-20 rounded-md" />
-                  <Skeleton className="h-6 w-14 rounded-md" />
+              <div key={i} className={cn(
+                "p-6 rounded-2xl",
+                "bg-white/60 backdrop-blur-md",
+                "border border-white/40",
+                "animate-pulse"
+              )}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="h-5 w-3/4 bg-gray-200/60 rounded-lg mb-3" />
+                    <div className="h-4 w-full bg-gray-200/60 rounded-lg mb-2" />
+                    <div className="h-4 w-2/3 bg-gray-200/60 rounded-lg" />
+                  </div>
+                  <div className="h-6 w-24 bg-gray-200/60 rounded-lg ml-4" />
                 </div>
-                <Skeleton className="h-4 w-1/4" />
+                <div className="flex gap-2 mb-4">
+                  <div className="h-7 w-16 bg-gray-200/60 rounded-lg" />
+                  <div className="h-7 w-20 bg-gray-200/60 rounded-lg" />
+                  <div className="h-7 w-14 bg-gray-200/60 rounded-lg" />
+                </div>
+                <div className="h-4 w-1/3 bg-gray-200/60 rounded-lg" />
               </div>
             ))}
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-            <div className="text-red-600 text-4xl mb-4">⚠️</div>
-            <h3 className="text-lg font-semibold text-red-800 mb-2">
+          <div className={cn(
+            "p-10 rounded-3xl text-center",
+            "bg-[#FF3B30]/5 backdrop-blur-md",
+            "border border-[#FF3B30]/20"
+          )}>
+            <div className="w-16 h-16 rounded-2xl bg-[#FF3B30]/10 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-[#FF3B30]" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
               Erreur de chargement
             </h3>
-            <p className="text-red-600 mb-4">{error}</p>
+            <p className="text-gray-600 mb-6">{error}</p>
             <button 
               onClick={() => fetchAnalyses(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className={cn(
+                "inline-flex items-center gap-2",
+                "px-5 py-2.5 rounded-xl",
+                "bg-[#FF3B30] text-white text-sm font-semibold",
+                "hover:bg-[#E6352B]",
+                "active:scale-[0.98]",
+                "transition-all duration-200"
+              )}
             >
+              <RefreshCw className="w-4 h-4" />
               Réessayer
             </button>
           </div>
         ) : analyses.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
-            <div className="text-slate-400 text-6xl mb-4">📊</div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+          <div className={cn(
+            "p-12 rounded-3xl text-center",
+            "bg-white/60 backdrop-blur-xl",
+            "border border-white/50"
+          )}>
+            <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
+              <BarChart3 className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
               Aucune analyse trouvée
             </h3>
-            <p className="text-slate-600 mb-6">
+            <p className="text-gray-500 mb-6 max-w-md mx-auto">
               Aucune analyse ne correspond à vos critères de recherche.
             </p>
-            <div className="text-sm text-slate-500">
-              💡 Essayez de réduire les filtres ou de changer la période
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#007AFF]/5 text-[#007AFF] text-sm">
+              <Sparkles className="w-4 h-4" />
+              Essayez de réduire les filtres ou de changer la période
             </div>
           </div>
         ) : (
           <>
-            <div className="space-y-6">
+            <div className="space-y-4">
               {analyses.map((analysis) => (
                 <AnalysisCard key={analysis.id} analysis={analysis} />
               ))}
@@ -215,42 +348,84 @@ export default function AnalysesPage() {
 
             {/* Load More */}
             {analyses.length < total && (
-              <div className="mt-8 text-center">
+              <div className="mt-10 text-center">
                 <button 
                   onClick={() => fetchAnalyses(false)}
                   disabled={loading}
-                  className="px-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={cn(
+                    "inline-flex items-center gap-2",
+                    "px-6 py-3 rounded-xl",
+                    "bg-white/70 backdrop-blur-md",
+                    "border border-black/[0.06]",
+                    "text-gray-700 text-sm font-medium",
+                    "hover:bg-white/90 hover:border-black/[0.1]",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    "active:scale-[0.98]",
+                    "transition-all duration-200"
+                  )}
                 >
-                  {loading ? 'Chargement...' : '📈 Charger plus d\'analyses'}
+                  {loading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Chargement...
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp className="w-4 h-4" />
+                      Charger plus d'analyses
+                    </>
+                  )}
                 </button>
               </div>
             )}
           </>
         )}
 
-        {/* Footer Info */}
-        <div className="mt-12 bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <div className="text-center">
-            <h4 className="text-lg font-semibold text-blue-900 mb-2">
-              🤖 Comment ça marche ?
+        {/* How it works */}
+        <div className={cn(
+          "mt-16 p-8 rounded-3xl",
+          "bg-gradient-to-br from-[#007AFF]/5 via-white/60 to-[#5856D6]/5",
+          "backdrop-blur-xl",
+          "border border-white/50"
+        )}>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#007AFF]/10 mb-4">
+              <Bot className="w-6 h-6 text-[#007AFF]" />
+            </div>
+            <h4 className="text-xl font-semibold text-gray-900 mb-2">
+              Comment ça marche ?
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
-              <div>
-                <div className="font-medium mb-1">1. Collecte</div>
-                <div>RSS feeds analysés toutes les 10min</div>
+            <p className="text-gray-500 text-sm">Notre système analyse automatiquement les actualités financières</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="w-10 h-10 rounded-xl bg-[#34C759]/10 flex items-center justify-center mx-auto mb-3">
+                <RefreshCw className="w-5 h-5 text-[#34C759]" />
               </div>
-              <div>
-                <div className="font-medium mb-1">2. Analyse IA</div>
-                <div>Classification pertinence + impact marché</div>
-              </div>
-              <div>
-                <div className="font-medium mb-1">3. Scoring</div>
-                <div>Importance calculée automatiquement</div>
-              </div>
+              <h5 className="font-semibold text-gray-900 mb-1">1. Collecte</h5>
+              <p className="text-sm text-gray-500">Sources RSS analysées toutes les 10 minutes</p>
             </div>
-            <div className="mt-4 text-xs text-blue-600">
+            <div className="text-center">
+              <div className="w-10 h-10 rounded-xl bg-[#007AFF]/10 flex items-center justify-center mx-auto mb-3">
+                <Sparkles className="w-5 h-5 text-[#007AFF]" />
+              </div>
+              <h5 className="font-semibold text-gray-900 mb-1">2. Analyse IA</h5>
+              <p className="text-sm text-gray-500">Classification pertinence + impact marché</p>
+            </div>
+            <div className="text-center">
+              <div className="w-10 h-10 rounded-xl bg-[#AF52DE]/10 flex items-center justify-center mx-auto mb-3">
+                <Zap className="w-5 h-5 text-[#AF52DE]" />
+              </div>
+              <h5 className="font-semibold text-gray-900 mb-1">3. Scoring</h5>
+              <p className="text-sm text-gray-500">Importance calculée automatiquement</p>
+            </div>
+          </div>
+          
+          <div className="mt-8 pt-6 border-t border-black/[0.04] text-center">
+            <p className="text-xs text-gray-400">
               ⚠️ Aucun conseil d'investissement • Données éducatives uniquement
-            </div>
+            </p>
           </div>
         </div>
       </div>

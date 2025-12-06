@@ -10,9 +10,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-[var(--accent)] text-white shadow hover:opacity-90",
-        outline: "border border-[var(--border)] bg-[var(--surface)] hover:bg-slate-50",
-        ghost: "hover:bg-slate-100",
+        default: "inline-flex items-center justify-center rounded-full border border-white/10 bg-white text-investy-bgSoft px-4 py-2 text-sm font-medium transition hover:bg-transparent hover:text-white hover:border-white/60",
+        outline: "bg-transparent border border-white/15 text-investy-textMuted hover:border-white/40 hover:text-white",
+        ghost: "hover:bg-white/5 text-investy-textMuted hover:text-investy-accent",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -141,18 +141,18 @@ export default function AssetExplorer(){
   if (!mounted) {
     return (
       <section aria-labelledby="assets-title" className="py-16">
-        <div className="container mx-auto max-w-6xl px-4">
-          <h2 id="assets-title" className="text-3xl md:text-4xl font-semibold text-center mb-10">Grandes familles d'actifs</h2>
+        <div className="max-w-6xl mx-auto px-4 lg:px-8">
+          <h2 id="assets-title" className="text-3xl md:text-4xl font-semibold text-center mb-10 text-investy-textPrimary">Grandes familles d'actifs</h2>
           <div className="grid md:grid-cols-[280px,1fr] gap-6">
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-2 animate-pulse">
-              <div className="h-12 bg-slate-200 rounded-xl mb-2" />
-              <div className="h-12 bg-slate-200 rounded-xl mb-2" />
-              <div className="h-12 bg-slate-200 rounded-xl mb-2" />
+            <div className="bg-investy-surface border border-white/5 rounded-2xl backdrop-blur-sm p-2 animate-pulse">
+              <div className="h-12 bg-white/5 rounded-xl mb-2" />
+              <div className="h-12 bg-white/5 rounded-xl mb-2" />
+              <div className="h-12 bg-white/5 rounded-xl mb-2" />
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 animate-pulse">
-              <div className="h-8 bg-slate-200 rounded mb-4" />
-              <div className="h-24 bg-slate-200 rounded mb-4" />
-              <div className="h-40 bg-slate-200 rounded" />
+            <div className="bg-investy-surface border border-white/5 rounded-2xl backdrop-blur-sm p-6 animate-pulse">
+              <div className="h-8 bg-white/5 rounded mb-4" />
+              <div className="h-24 bg-white/5 rounded mb-4" />
+              <div className="h-40 bg-white/5 rounded" />
             </div>
           </div>
         </div>
@@ -162,12 +162,12 @@ export default function AssetExplorer(){
 
   return (
     <section aria-labelledby="assets-title" className="py-16">
-      <div className="container mx-auto max-w-6xl px-4">
-        <h2 id="assets-title" className="text-3xl md:text-4xl font-semibold text-center mb-10">Grandes familles d'actifs</h2>
+      <div className="max-w-6xl mx-auto px-4 lg:px-8">
+        <h2 id="assets-title" className="text-3xl md:text-4xl font-semibold text-center mb-10 text-investy-textPrimary">Grandes familles d'actifs</h2>
 
         <div className="grid md:grid-cols-[280px,1fr] gap-6">
           {/* Liste (tabs/volet) */}
-          <div role="tablist" aria-label="Types d'actifs" className="bg-white border border-slate-200 rounded-2xl shadow-sm p-2">
+          <div role="tablist" aria-label="Types d'actifs" className="bg-investy-surface border border-white/5 rounded-2xl backdrop-blur-sm p-2">
             {ASSETS.map(a=>{
               const Icon = a.icon;
               const selected = a.key===active;
@@ -178,12 +178,12 @@ export default function AssetExplorer(){
                   aria-selected={selected}
                   onClick={()=>setActive(a.key)}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition
-                    ${selected ? "bg-slate-100 border border-slate-200" : "hover:bg-slate-50"}`}
+                    ${selected ? "bg-white/5 border border-white/10" : "hover:bg-white/5"}`}
                 >
                   <Icon className="w-5 h-5" style={{color:a.color}} />
                   <div>
-                    <div className="text-sm font-medium">{a.label}</div>
-                    <div className="text-xs text-slate-600">{a.summary}</div>
+                    <div className="text-sm font-medium text-investy-textPrimary">{a.label}</div>
+                    <div className="text-xs text-investy-textMuted">{a.summary}</div>
                   </div>
                 </button>
               );
@@ -191,49 +191,49 @@ export default function AssetExplorer(){
           </div>
 
           {/* Panneau de contenu */}
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+          <div className="bg-investy-surface border border-white/5 rounded-2xl backdrop-blur-sm p-6">
             <div className="flex items-center gap-3 mb-3">
               <current.icon className="w-6 h-6" style={{color:current.color}} />
-              <h3 className="text-xl font-semibold">{current.label}</h3>
-              <span className="ml-auto text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-lg border border-slate-200">
+              <h3 className="text-xl font-semibold text-investy-textPrimary">{current.label}</h3>
+              <span className="ml-auto text-xs bg-white/5 text-investy-textMuted px-2 py-1 rounded-lg border border-white/10">
                 Plage indicative : {current.range}
               </span>
             </div>
 
-            <p className="text-slate-700 mb-4">{current.definition}</p>
+            <p className="text-investy-textMuted mb-4">{current.definition}</p>
 
             <div className="grid md:grid-cols-3 gap-6">
               <div className="md:col-span-2">
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                    <div className="text-sm font-semibold mb-2">Atouts</div>
-                    <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
+                  <div className="bg-investy-bgSoft border border-white/5 rounded-xl p-4">
+                    <div className="text-sm font-semibold mb-2 text-investy-textPrimary">Atouts</div>
+                    <ul className="list-disc pl-5 space-y-1 text-sm text-investy-textMuted">
                       {current.pros.map((p,i)=><li key={i}>{p}</li>)}
                     </ul>
                   </div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                    <div className="text-sm font-semibold mb-2">Risques</div>
-                    <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
+                  <div className="bg-investy-bgSoft border border-white/5 rounded-xl p-4">
+                    <div className="text-sm font-semibold mb-2 text-investy-textPrimary">Risques</div>
+                    <ul className="list-disc pl-5 space-y-1 text-sm text-investy-textMuted">
                       {current.cons.map((c,i)=><li key={i}>{c}</li>)}
                     </ul>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-4">
-                  <div className="text-sm font-semibold mb-2">Comment y accéder ?</div>
-                  <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
+                <div className="bg-investy-bgSoft border border-white/5 rounded-xl p-4 mt-4">
+                  <div className="text-sm font-semibold mb-2 text-investy-textPrimary">Comment y accéder ?</div>
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-investy-textMuted">
                     {current.access.map((x,i)=><li key={i}>{x}</li>)}
                   </ul>
                 </div>
               </div>
 
               {/* Simulation éducative */}
-              <div className="bg-white border border-slate-200 rounded-xl p-4">
+              <div className="bg-investy-bgSoft border border-white/5 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-semibold text-slate-800">10 ans (simulation éducative)</div>
+                  <div className="text-sm font-semibold text-investy-textPrimary">10 ans (simulation éducative)</div>
                   <button
                     onClick={() => setSeed(Math.floor(Math.random()*1e9))}
-                    className="text-xs px-2 py-1 border border-slate-300 rounded-lg hover:bg-slate-50"
+                    className="text-xs px-2 py-1 border border-white/10 rounded-lg hover:bg-white/5 text-investy-textMuted hover:text-investy-textPrimary transition"
                   >
                     Resimuler
                   </button>
@@ -266,21 +266,21 @@ export default function AssetExplorer(){
                 </div>
 
                 <div className="mt-3 flex items-center gap-2">
-                  <span className="text-[11px] bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-lg">
+                  <span className="text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-lg">
                     CAGR ~ {formatPct(cagr)}
                   </span>
-                  <span className="text-[11px] bg-red-50 text-red-700 border border-red-200 px-2 py-1 rounded-lg">
+                  <span className="text-[11px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-1 rounded-lg">
                     Max DD ~ {formatPct(mdd)}
                   </span>
                 </div>
 
-                <p className="text-[11px] text-slate-500 mt-2">
+                <p className="text-[11px] text-investy-textMuted mt-2">
                   Illustration synthétique (GBM), non représentative de performances réelles.
                 </p>
               </div>
             </div>
 
-            <div className="text-xs text-slate-500 mt-6">
+            <div className="text-xs text-investy-textMuted mt-6">
               Contenu éducatif uniquement — aucune recommandation. Les plages indicatives varient selon le profil investisseur.
             </div>
           </div>

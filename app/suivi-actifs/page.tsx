@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Suivi d'actifs | Investy",
+  title: "Suivi d'actifs | Invsty",
   description:
     "Suivez vos actifs préférés avec des recommandations éducatives. Gratuit: 1 actif suivi, mise à jour quotidienne.",
 };

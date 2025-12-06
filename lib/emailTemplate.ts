@@ -36,7 +36,7 @@ export function emailTemplate({
   <div style="max-width:680px;margin:auto;font:14px/1.5 Inter,Arial,sans-serif;color:#0f172a">
     <div style="border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
       <div style="background:linear-gradient(135deg,#0B1220,#111827);padding:18px 20px;color:#fff">
-        <div style="font-weight:700;font-size:16px">Investy</div>
+        <div style="font-weight:700;font-size:16px">Invsty</div>
         <div style="opacity:.9;margin-top:4px">${title}</div>
       </div>
       <div style="padding:18px 20px;background:#fff">
@@ -89,7 +89,7 @@ export function testEmailTemplate({
   <div style="max-width:680px;margin:auto;font:14px/1.5 Inter,Arial,sans-serif;color:#0f172a">
     <div style="border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
       <div style="background:linear-gradient(135deg,#0B1220,#111827);padding:18px 20px;color:#fff">
-        <div style="font-weight:700;font-size:16px">Investy</div>
+        <div style="font-weight:700;font-size:16px">Invsty</div>
         <div style="opacity:.9;margin-top:4px">Email de test — profil ${profile}</div>
       </div>
       <div style="padding:18px 20px;background:#fff">

@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     try {
       const response = await fetch(source.url, {
         headers: {
-          "User-Agent": "InvestyBot/0.1",
+          "User-Agent": "InvstyBot/0.1",
         },
         signal: AbortSignal.timeout(5000),
       });

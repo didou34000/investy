@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Play, Pause, Trash2, Plus } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import AssetSelector from "@/components/AssetSelector";
+import AssetLogo from "@/components/ui/AssetLogo";
 
 type Subscription = {
   id: string;
@@ -13,141 +13,29 @@ type Subscription = {
   next_run_at: string | null;
   last_run_at: string | null;
   last_status: string | null;
+  send_hour: number;
+  send_minute: number;
 };
 
-export default function FollowPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<any | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
+// Formulaire de création d'alerte (inchangé)
+function NewSubscriptionForm({ onCreated }: { onCreated: () => void }) {
   const [symbol, setSymbol] = useState("");
   const [hour, setHour] = useState(8);
   const [minute, setMinute] = useState(0);
-  const hasRedirectedRef = useRef(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  // Garde d'authentification - VERSION SIMPLIFIÉE ET ROBUSTE
-  useEffect(() => {
-    let mounted = true;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    setCreateError(null);
 
-    const checkAuth = async () => {
-      // Vérifier si on vient de /auth (redirection récente)
-      const redirectTimestamp = sessionStorage.getItem("auth_redirect_timestamp");
-      const comingFromAuth = redirectTimestamp !== null;
-      const timeSinceRedirect = redirectTimestamp ? Date.now() - parseInt(redirectTimestamp) : Infinity;
-      
-      // Si on vient de /auth, attendre plus longtemps
-      const waitTime = comingFromAuth && timeSinceRedirect < 10000 ? 2500 : 800;
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
-      
-      if (!mounted) return;
-
-      // Vérifier la session plusieurs fois si on vient de /auth
-      let session = null;
-      const maxAttempts = comingFromAuth ? 5 : 2;
-      
-      for (let i = 0; i < maxAttempts; i++) {
-        if (!mounted) return;
-        
-        const { data, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error("getSession error", error);
-          break;
-        }
-        
-        session = data.session;
-        if (session && session.user) {
-          break; // Session trouvée
-        }
-        
-        // Attendre avant le prochain essai
-        if (i < maxAttempts - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      }
-      
-      if (!mounted) return;
-
-      if (session && session.user) {
-        // ✅ Session valide
-        setUser(session.user);
-        setLoadingUser(false);
-        sessionStorage.removeItem("auth_redirect_timestamp");
-      } else {
-        // ❌ Pas de session après tous les essais
-        setLoadingUser(false);
-        sessionStorage.removeItem("auth_redirect_timestamp");
-        
-        // Ne rediriger QUE si on n'a pas déjà redirigé récemment (évite les boucles)
-        if (!hasRedirectedRef.current && timeSinceRedirect > 5000) {
-          hasRedirectedRef.current = true;
-          router.replace("/auth");
-        }
-      }
-    };
-
-    checkAuth();
-
-    // Écouter les changements d'auth
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return;
-      
-      if (event === "SIGNED_IN" && session && session.user) {
-        setUser(session.user);
-        setLoadingUser(false);
-        sessionStorage.removeItem("auth_redirect_timestamp");
-      } else if (event === "SIGNED_OUT") {
-        setUser(null);
-        setLoadingUser(false);
-        sessionStorage.removeItem("auth_redirect_timestamp");
-        if (!hasRedirectedRef.current) {
-          hasRedirectedRef.current = true;
-          router.replace("/auth");
-        }
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [router]);
-
-  useEffect(() => {
-    if (user) {
-      loadSubscriptions();
-    }
-  }, [user]);
-
-  async function loadSubscriptions() {
-    try {
-      const res = await fetch("/api/subscriptions");
-      if (res.status === 401) {
-        // Ne pas rediriger ici, on laisse le useEffect principal gérer
-        setLoading(false);
-        return;
-      }
-      const json = await res.json();
-      if (res.ok) {
-        setSubscriptions(json.subscriptions || []);
-      }
-    } catch (e) {
-      console.error("Error loading subscriptions:", e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function createSub() {
     if (!symbol.trim()) {
-      alert("Veuillez entrer un symbole (ex: AAPL, BTC-USD)");
+      setCreateError("Le symbole est requis");
+      setCreating(false);
       return;
     }
 
-    setCreating(true);
     try {
       const res = await fetch("/api/subscriptions", {
         method: "POST",
@@ -162,194 +50,336 @@ export default function FollowPage() {
       });
 
       const json = await res.json();
+
       if (!res.ok) {
-        alert(json.error || "Erreur lors de la création de l'abonnement");
+        setCreateError(json.error || "Création impossible, réessaie");
         return;
       }
 
       setSymbol("");
-      await loadSubscriptions();
+      setHour(8);
+      setMinute(0);
+      onCreated();
     } catch (e: any) {
-      alert(e?.message || "Erreur réseau");
+      setCreateError("Erreur réseau, réessaie");
+      console.error("Create subscription error:", e);
     } finally {
       setCreating(false);
     }
-  }
+  };
 
-  async function togglePause(sub: Subscription) {
+  return (
+    <div className="border border-slate-200 rounded-xl p-4 mb-6 bg-white">
+      <h2 className="text-lg font-semibold text-slate-900 mb-4">Nouvelle alerte</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Actif à suivre
+          </label>
+          <AssetSelector
+            value={symbol}
+            onChange={setSymbol}
+            disabled={creating}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Heure
+            </label>
+            <select
+              value={hour}
+              onChange={(e) => setHour(parseInt(e.target.value))}
+              className="border border-slate-300 rounded-md px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+              disabled={creating}
+            >
+              <option value={8}>08</option>
+              <option value={9}>09</option>
+              <option value={10}>10</option>
+              <option value={11}>11</option>
+              <option value={12}>12</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Minute
+            </label>
+            <select
+              value={minute}
+              onChange={(e) => setMinute(parseInt(e.target.value))}
+              className="border border-slate-300 rounded-md px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+              disabled={creating}
+            >
+              <option value={0}>00</option>
+              <option value={15}>15</option>
+              <option value={30}>30</option>
+              <option value={45}>45</option>
+            </select>
+          </div>
+        </div>
+
+        {createError && (
+          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            {createError}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={creating}
+          className="rounded-md px-4 py-2 text-sm font-medium bg-black text-white disabled:opacity-60 disabled:cursor-not-allowed hover:bg-slate-800 transition-colors"
+        >
+          {creating ? "Création..." : "Créer l'alerte"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default function FollowPage() {
+  const router = useRouter();
+  const [subs, setSubs] = useState<Subscription[]>([]);
+  const [loadingSubs, setLoadingSubs] = useState(true);
+  const [subsError, setSubsError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<Record<string, string>>({});
+  const [assetsMap, setAssetsMap] = useState<Map<string, { label: string; logo: string | null; category: string }>>(new Map());
+
+  // Chargement des subscriptions (sans aucune logique de redirection /auth)
+  const loadSubscriptions = useCallback(async () => {
+    setLoadingSubs(true);
+    setSubsError(null);
+
     try {
-      const endpoint = sub.enabled ? "pause" : "resume";
-      const res = await fetch(`/api/subscriptions/${sub.id}/${endpoint}`, {
-        method: "POST",
+      const res = await fetch("/api/subscriptions", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
       });
 
-      if (!res.ok) {
-        const json = await res.json();
-        alert(json.error || "Erreur");
+      if (res.status === 401) {
+        // Utilisateur non connecté côté serveur : on affiche un message clair, sans redirection automatique
+        setSubs([]);
+        setSubsError("Tu n'es pas connecté. Va sur la page de connexion pour accéder à tes alertes.");
         return;
       }
 
-      await loadSubscriptions();
-    } catch (e: any) {
-      alert(e?.message || "Erreur réseau");
+      const json = await res.json();
+
+      if (!res.ok) {
+        setSubsError("Impossible de charger les alertes");
+        return;
+      }
+
+      setSubs(json.subscriptions || []);
+    } catch (e) {
+      console.error("Error loading subscriptions:", e);
+      setSubsError("Impossible de charger les alertes");
+    } finally {
+      setLoadingSubs(false);
     }
-  }
+  }, []);
 
-  if (loadingUser) {
-    return (
-      <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <p className="p-4 text-sm">Chargement...</p>
-        </div>
-      </main>
-    );
-  }
+  useEffect(() => {
+    loadSubscriptions();
+  }, [loadSubscriptions]);
 
-  if (!user) {
-    return (
-      <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <p className="p-4 text-sm">Vérification de la session...</p>
-        </div>
-      </main>
-    );
-  }
+  // Charger les actifs pour les logos
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        const res = await fetch("/api/market");
+        const json = await res.json();
+        if (res.ok && json.data) {
+          const map = new Map();
+          json.data.forEach((asset: any) => {
+            map.set(asset.symbol, {
+              label: asset.label,
+              logo: asset.logo,
+              category: asset.category,
+            });
+          });
+          setAssetsMap(map);
+        }
+      } catch (e) {
+        console.error("Error loading assets:", e);
+      }
+    };
+    loadAssets();
+  }, []);
 
-  if (loading) {
-    return (
-      <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center">Chargement...</div>
-        </div>
-      </main>
-    );
-  }
+  const handlePause = async (id: string) => {
+    setActionLoading((prev) => ({ ...prev, [id]: "pause" }));
+    try {
+      const res = await fetch(`/api/subscriptions/${id}/pause`, { method: "POST" });
+      if (!res.ok) {
+        const json = await res.json();
+        console.error("Pause error:", json.error);
+        return;
+      }
+      await loadSubscriptions();
+    } catch (e) {
+      console.error("Pause error:", e);
+    } finally {
+      setActionLoading((prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }));
+    }
+  };
+
+  const handleResume = async (id: string) => {
+    setActionLoading((prev) => ({ ...prev, [id]: "resume" }));
+    try {
+      const res = await fetch(`/api/subscriptions/${id}/resume`, { method: "POST" });
+      if (!res.ok) {
+        const json = await res.json();
+        console.error("Resume error:", json.error);
+        return;
+      }
+      await loadSubscriptions();
+    } catch (e) {
+      console.error("Resume error:", e);
+    } finally {
+      setActionLoading((prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }));
+    }
+  };
+
+  const handleTest = async (id: string) => {
+    setActionLoading((prev) => ({ ...prev, [id]: "test" }));
+    try {
+      const res = await fetch(`/api/subscription-run/${id}`, { method: "POST" });
+      if (!res.ok) {
+        const json = await res.json();
+        console.error("Test error:", json.error);
+        return;
+      }
+      await loadSubscriptions();
+    } catch (e) {
+      console.error("Test error:", e);
+    } finally {
+      setActionLoading((prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }));
+    }
+  };
 
   return (
     <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <p className="text-sm text-gray-600 mb-4">
-          Connecté en tant que {user.email}
-        </p>
         <h1 className="text-3xl font-bold text-slate-900 mb-8">Suivi d'actifs</h1>
 
-        {/* Formulaire de création */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm mb-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Ajouter un actif à suivre
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Symbole
-              </label>
-              <input
-                type="text"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-                placeholder="AAPL, BTC-USD..."
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={creating}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Heure
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="23"
-                value={hour}
-                onChange={(e) => setHour(parseInt(e.target.value) || 8)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={creating}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Minute
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="59"
-                value={minute}
-                onChange={(e) => setMinute(parseInt(e.target.value) || 0)}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={creating}
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={createSub}
-                disabled={creating || !symbol.trim()}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {creating ? "..." : "Ajouter"}
-              </button>
-            </div>
-          </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Exemples: AAPL (Apple), BTC-USD (Bitcoin), TSLA (Tesla), MC.PA (LVMH)
-          </p>
-        </div>
+        <NewSubscriptionForm onCreated={loadSubscriptions} />
 
-        {/* Liste des abonnements */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="border border-slate-200 rounded-xl p-6 bg-white">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">
-            Mes abonnements ({subscriptions.length})
+            Mes alertes ({subs.length})
           </h2>
 
-          {subscriptions.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              <p>Aucun abonnement actif.</p>
-              <p className="text-sm mt-2">Ajoutez un actif ci-dessus pour commencer.</p>
+          {loadingSubs && (
+            <div className="text-center py-8 text-slate-600">
+              Chargement des alertes...
             </div>
-          ) : (
+          )}
+
+          {subsError && (
+            <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3 mb-4">
+              {subsError}
+            </div>
+          )}
+
+          {!loadingSubs && subs.length === 0 && !subsError && (
+            <div className="text-center py-8 text-slate-500">
+              <p>Aucune alerte pour l'instant.</p>
+              <p className="text-sm mt-2">Crée ta première alerte ci-dessus.</p>
+            </div>
+          )}
+
+          {!loadingSubs && subs.length > 0 && (
             <div className="space-y-3">
-              {subscriptions.map((sub) => (
-                <div
-                  key={sub.id}
-                  className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-slate-900">{sub.symbol}</span>
-                      <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">
-                        {sub.frequency}
-                      </span>
-                      {sub.enabled ? (
-                        <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
-                          Actif
-                        </span>
-                      ) : (
+              {subs.map((sub) => {
+                const isLoading = actionLoading[sub.id];
+                const timeStr = `${String(sub.send_hour).padStart(2, "0")}:${String(sub.send_minute).padStart(2, "0")}`;
+                const assetInfo = assetsMap.get(sub.symbol);
+
+                return (
+                  <div
+                    key={sub.id}
+                    className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1">
+                        <AssetLogo
+                          src={assetInfo?.logo || null}
+                          label={assetInfo?.label || sub.symbol}
+                          size={32}
+                        />
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-900">
+                            {assetInfo?.label || sub.symbol}
+                          </span>
+                          <span className="text-xs text-slate-500">({sub.symbol})</span>
+                        </div>
                         <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">
-                          En pause
+                          {sub.frequency}
                         </span>
-                      )}
+                        {sub.enabled ? (
+                          <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                            Actif
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+                            En pause
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        Envoi programmé : {timeStr}
+                        {sub.last_run_at && (
+                          <span className="ml-2">
+                            • Dernier envoi : {new Date(sub.last_run_at).toLocaleDateString("fr-FR")}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
-                      {sub.last_run_at
-                        ? `Dernier envoi: ${new Date(sub.last_run_at).toLocaleDateString("fr-FR")}`
-                        : "Pas encore envoyé"}
-                      {sub.next_run_at && ` • Prochain: ${new Date(sub.next_run_at).toLocaleDateString("fr-FR")}`}
+
+                    <div className="flex items-center gap-2">
+                      {sub.enabled ? (
+                        <button
+                          onClick={() => handlePause(sub.id)}
+                          disabled={!!isLoading}
+                          className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {isLoading === "pause" ? "…" : "Pause"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleResume(sub.id)}
+                          disabled={!!isLoading}
+                          className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 rounded-md hover:bg-slate-200 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {isLoading === "resume" ? "…" : "Reprendre"}
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleTest(sub.id)}
+                        disabled={!!isLoading}
+                        className="px-3 py-1.5 text-xs font-medium text-white bg-slate-900 rounded-md hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {isLoading === "test" ? "…" : "Tester"}
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={() => togglePause(sub)}
-                    className="p-2 rounded-lg hover:bg-slate-200 transition"
-                    title={sub.enabled ? "Mettre en pause" : "Reprendre"}
-                  >
-                    {sub.enabled ? (
-                      <Pause className="h-5 w-5 text-slate-600" />
-                    ) : (
-                      <Play className="h-5 w-5 text-slate-600" />
-                    )}
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

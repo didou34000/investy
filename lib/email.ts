@@ -22,7 +22,7 @@ export async function sendWeeklyAlertEmail(user: any, profil: string) {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Résumé Investy</title>
+          <title>Résumé Invsty</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -42,7 +42,7 @@ export async function sendWeeklyAlertEmail(user: any, profil: string) {
         <body>
           <div class="container">
             <div class="header">
-              <h1 style="margin: 0; font-size: 24px;">📈 Résumé Investy</h1>
+              <h1 style="margin: 0; font-size: 24px;">📈 Résumé Invsty</h1>
               <p style="margin: 10px 0 0 0; opacity: 0.9;">Suivi de vos actifs — Profil ${profil}</p>
             </div>
             
@@ -77,7 +77,7 @@ export async function sendWeeklyAlertEmail(user: any, profil: string) {
               
               <div class="disclaimer" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #E5E7EB;">
                 <strong>⚠️ Avertissement important :</strong><br>
-                Ce contenu est à but éducatif uniquement. Investy n'est pas un conseiller financier.<br>
+                Ce contenu est à but éducatif uniquement. Invsty n'est pas un conseiller financier.<br>
                 Aucune garantie de performance. Investir comporte des risques de perte en capital.<br>
                 Consultez un professionnel pour des conseils personnalisés.
               </div>
@@ -88,9 +88,9 @@ export async function sendWeeklyAlertEmail(user: any, profil: string) {
     `;
 
     await resend.emails.send({
-      from: "Investy <noreply@investy.ai>",
+      from: "Invsty <noreply@investy.ai>",
       to: user.email,
-      subject: `📈 Votre suivi hebdomadaire Investy (${profil})`,
+      subject: `📈 Votre suivi hebdomadaire Invsty (${profil})`,
       html,
     });
 
@@ -116,7 +116,7 @@ export async function sendWelcomeEmail(user: any, profil: string) {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Bienvenue sur Investy</title>
+          <title>Bienvenue sur Invsty</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -128,7 +128,7 @@ export async function sendWelcomeEmail(user: any, profil: string) {
         <body>
           <div class="container">
             <div class="header">
-              <h1 style="margin: 0; font-size: 28px;">🎉 Bienvenue sur Investy !</h1>
+              <h1 style="margin: 0; font-size: 28px;">🎉 Bienvenue sur Invsty !</h1>
               <p style="margin: 10px 0 0 0; opacity: 0.9;">Votre profil : ${profil}</p>
             </div>
             
@@ -158,7 +158,7 @@ export async function sendWelcomeEmail(user: any, profil: string) {
             <div style="background: #F9FAFB; padding: 20px; border-radius: 8px; margin-top: 30px;">
               <h3 style="color: #1F2937; margin-top: 0;">⚠️ Rappel important</h3>
               <p style="font-size: 14px; color: #6B7280; margin: 0;">
-                Investy est un outil éducatif, non un conseiller financier. 
+                Invsty est un outil éducatif, non un conseiller financier. 
                 Aucune garantie de performance. Investir comporte des risques.
                 Consultez un professionnel pour des conseils personnalisés.
               </p>
@@ -169,9 +169,9 @@ export async function sendWelcomeEmail(user: any, profil: string) {
     `;
 
     await resend.emails.send({
-      from: "Investy <noreply@investy.ai>",
+      from: "Invsty <noreply@investy.ai>",
       to: user.email,
-      subject: `🎉 Bienvenue sur Investy - Profil ${profil}`,
+      subject: `🎉 Bienvenue sur Invsty - Profil ${profil}`,
       html,
     });
 

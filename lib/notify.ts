@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const RESEND_KEY = process.env.RESEND_API_KEY || "";
-const FROM = process.env.EMAIL_FROM || "Investy <noreply@investy.ai>";
+const FROM = process.env.EMAIL_FROM || "Invsty <noreply@investy.ai>";
 
 const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null;
 
@@ -34,7 +34,7 @@ function render(d: any) {
     <p style="margin:12px 0">${escapeHtml(d?.signal?.rationale ?? "")}</p>
     ${bullets ? `<ul>${bullets}</ul>` : ""}
     ${news ? `<h3>Actus récentes</h3><ul>${news}</ul>` : ""}
-    <p style="color:#6b7280;font-size:12px;margin-top:16px">Investy — ajustez votre suivi depuis votre espace.</p>
+    <p style="color:#6b7280;font-size:12px;margin-top:16px">Invsty — ajustez votre suivi depuis votre espace.</p>
   </div>`;
 }
 

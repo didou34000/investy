@@ -301,7 +301,7 @@ export default function ModernQuizForm() {
             href="/signin"
             className="px-8 py-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 text-center"
           >
-            Créer mon espace Investy
+            Créer mon espace Invsty
             <ArrowRight className="w-4 h-4" />
           </a>
         </div>

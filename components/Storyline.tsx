@@ -23,24 +23,24 @@ export default function Storyline() {
   ];
 
   return (
-    <section className="py-12" aria-labelledby="storyline-title">
-      <div className="container mx-auto max-w-6xl px-4">
-        <h2 id="storyline-title" className="text-2xl md:text-3xl font-semibold text-center mb-8">
+    <section className="py-16" aria-labelledby="storyline-title">
+      <div className="max-w-6xl mx-auto px-4 lg:px-8">
+        <h2 id="storyline-title" className="text-2xl md:text-3xl font-semibold text-center mb-8 text-investy-textPrimary">
           La première plateforme qui suit le marché pour vous
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {items.map((item, i) => {
             const Icon = item.icon;
             return (
-              <div key={i} className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+              <div key={i} className="bg-investy-surface border border-white/5 rounded-2xl backdrop-blur-sm p-6 hover:border-white/10 hover:-translate-y-[2px] hover:shadow-lg hover:shadow-black/40 transition">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Icon className="w-4 h-4 text-blue-600" />
+                  <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center">
+                    <Icon className="w-4 h-4 text-investy-accent" />
                   </div>
-                  <h3 className="text-lg font-semibold">{item.title}</h3>
+                  <h3 className="text-lg font-semibold text-investy-textPrimary">{item.title}</h3>
                 </div>
-                <p className="text-slate-700 text-sm mb-3">{item.desc}</p>
-                <a href={item.href} className="text-blue-600 text-sm underline inline-flex items-center gap-1">
+                <p className="text-investy-textMuted text-sm mb-3">{item.desc}</p>
+                <a href={item.href} className="text-investy-accent text-sm underline inline-flex items-center gap-1 hover:no-underline">
                   En savoir plus
                   <ArrowRight className="w-3 h-3" />
                 </a>

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Déploiement Investy..."
+echo "🚀 Déploiement Invsty..."
 
 # Vérifier que nous sommes dans le bon répertoire
 if [ ! -f "package.json" ]; then

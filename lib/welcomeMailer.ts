@@ -6,11 +6,11 @@ export async function sendWelcomeEmail(email: string, name?: string) {
   const html = `
   <div style="font-family:Inter,sans-serif;line-height:1.6;color:#111;max-width:600px;margin:0 auto;padding:20px;">
     <div style="text-align:center;margin-bottom:30px;">
-      <h1 style="color:#3B82F6;font-size:28px;margin:0;">💼 Investy</h1>
+      <h1 style="color:#3B82F6;font-size:28px;margin:0;">💼 Invsty</h1>
       <p style="color:#64748B;margin:5px 0 0 0;">L'investissement expliqué simplement</p>
     </div>
     
-    <h2 style="color:#3B82F6;font-size:24px;margin-bottom:20px;">Bienvenue sur Investy !</h2>
+    <h2 style="color:#3B82F6;font-size:24px;margin-bottom:20px;">Bienvenue sur Invsty !</h2>
     
     <p style="font-size:16px;margin-bottom:20px;">Bonjour ${name || "cher utilisateur"},</p>
     
@@ -38,13 +38,13 @@ export async function sendWelcomeEmail(email: string, name?: string) {
     
     <div style="border-top:1px solid #E2E8F0;padding-top:20px;margin-top:30px;">
       <p style="font-size:12px;color:#64748B;margin:0;line-height:1.4;">
-        <strong>Important :</strong> Investy est une plateforme d'éducation financière, pas un conseiller en investissement agréé. 
+        <strong>Important :</strong> Invsty est une plateforme d'éducation financière, pas un conseiller en investissement agréé. 
         Les contenus sont informatifs et non prescriptifs. Aucune garantie de performance n'est donnée.
       </p>
     </div>
     
     <div style="text-align:center;margin-top:20px;font-size:12px;color:#94A3B8;">
-      <p>Investy • Plateforme d'éducation financière</p>
+      <p>Invsty • Plateforme d'éducation financière</p>
       <p>Pour toute question : <a href="mailto:contact@investy.app" style="color:#3B82F6;">contact@investy.app</a></p>
     </div>
   </div>
@@ -52,9 +52,9 @@ export async function sendWelcomeEmail(email: string, name?: string) {
 
   try {
     await resend.emails.send({
-      from: "Investy <hello@investy.app>",
+      from: "Invsty <hello@investy.app>",
       to: email,
-      subject: "Bienvenue sur Investy 💼 - Découvrez votre profil investisseur",
+      subject: "Bienvenue sur Invsty 💼 - Découvrez votre profil investisseur",
       html
     });
     console.log(`[Welcome Email] Sent to ${email}`);

@@ -17,9 +17,9 @@ export default function Header() {
   return (
     <header className="fixed inset-x-0 top-0 z-40 border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <Container className="h-16 flex items-center justify-between">
-        <Link href="/" className="inline-flex items-center gap-2 font-bold text-slate-900" aria-label="Investy Accueil">
-          <span className="inline-grid place-items-center w-8 h-8 rounded-lg bg-blue-600 text-white">I</span>
-          Investy
+        <Link href="/" className="inline-flex items-center gap-2 font-bold text-slate-900" aria-label="Invsty Accueil">
+          <img src="/logo.png" alt="Invsty" className="w-8 h-8 object-contain" />
+          Invsty
         </Link>
         <nav aria-label="Navigation principale" className="hidden md:flex items-center gap-6 text-sm">
           {links.map((l) => {

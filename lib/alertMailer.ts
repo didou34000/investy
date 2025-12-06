@@ -8,7 +8,7 @@ export async function sendAlertEmail({ email, name, alerts, macro }: any) {
     console.log("[mailer] suppressed (not in allowlist):", email);
     return;
   }
-  const title = `🔔 Vos alertes Investy`;
+  const title = `🔔 Vos alertes Invsty`;
   const summary = alerts.map((a:any)=>`<li>${a.message}</li>`).join("");
   const macroSection = macro?.length
     ? `<p style="margin-top:12px;">📰 <b>Tendances macro</b> : ${macro.join(", ")}.</p>`
@@ -22,11 +22,11 @@ export async function sendAlertEmail({ email, name, alerts, macro }: any) {
       ${macroSection}
       <p style="margin-top:12px;">🧠 Rappel : ces données sont informatives et éducatives, non prescriptives.</p>
       <hr style="margin:20px 0;"/>
-      <p style="font-size:12px;color:#64748B;">Envoyé automatiquement par Investy • <a href="https://investy.app">investy.app</a></p>
+      <p style="font-size:12px;color:#64748B;">Envoyé automatiquement par Invsty • <a href="https://investy.app">investy.app</a></p>
     </div>
   `;
   await resend.emails.send({
-    from: "Investy Alerts <alerts@investy.app>",
+    from: "Invsty Alerts <alerts@investy.app>",
     to: email,
     subject: title,
     html,

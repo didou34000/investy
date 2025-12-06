@@ -1,4 +1,4 @@
-# Investy – Déploiement Vercel
+# Invsty – Déploiement Vercel
 
 ## ENV
 Copiez `env.example` vers `.env.local` et remplissez si nécessaire:
