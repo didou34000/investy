@@ -17,10 +17,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
-      url: 'https://investy.app/actu',
+      url: 'https://investy.app/result',
       lastModified: new Date(),
-      changeFrequency: 'hourly',
+      changeFrequency: 'weekly',
       priority: 0.8,
+    },
+    {
+      url: 'https://investy.app/legal',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: 'https://investy.app/contact',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.5,
     },
   ]
 }

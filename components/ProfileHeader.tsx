@@ -61,8 +61,8 @@ export default function ProfileHeader() {
     return null;
   }
 
-  const userInitial = user.email?.charAt(0).toUpperCase() || "U";
   const userName = user.user_metadata?.name || user.email?.split("@")[0] || "Utilisateur";
+  const userInitial = (userName?.charAt(0) || user.email?.charAt(0) || "U").toUpperCase();
 
   return (
     <div className="relative" ref={dropdownRef}>

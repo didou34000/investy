@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -9,7 +9,7 @@ import ProfileHeader from "@/components/ProfileHeader";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 
-const links = [
+const baseLinks = [
   { href: "/", label: "Accueil" },
   { href: "/quiz", label: "Quiz" },
   { href: "/actu", label: "Actu", soon: true },
@@ -42,6 +42,18 @@ export default function NavBarMinimal() {
 
   const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  const links = useMemo(() => {
+    if (isAuthenticated) {
+      return [
+        baseLinks[0],
+        baseLinks[1],
+        { href: "/dashboard", label: "Dashboard" },
+        ...baseLinks.slice(2),
+      ];
+    }
+    return baseLinks;
+  }, [isAuthenticated]);
+
   return (
     <>
       <header className={cn(
@@ -62,7 +74,9 @@ export default function NavBarMinimal() {
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-1">
-              {links.map((link) => (
+              {links.map((link) => {
+                const isDash = link.href === "/dashboard";
+                return (
                 <Link
                   key={link.href}
                   href={link.soon ? "/soon" : link.href}
@@ -72,7 +86,9 @@ export default function NavBarMinimal() {
                       ? "text-slate-400 hover:text-slate-500" 
                       : isActive(link.href) 
                         ? "text-slate-900 bg-slate-100" 
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        : isDash
+                          ? "text-slate-900 bg-white border border-slate-200 shadow-sm hover:-translate-y-0.5"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   )}
                 >
                   <span className="flex items-center gap-2">
@@ -84,7 +100,7 @@ export default function NavBarMinimal() {
                     )}
                   </span>
                 </Link>
-              ))}
+              );})}
             </nav>
 
             {/* Desktop CTA */}
@@ -140,7 +156,7 @@ export default function NavBarMinimal() {
               className="fixed top-20 left-4 right-4 z-50 md:hidden bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden"
             >
               <div className="p-4 space-y-1">
-                {links.map((link) => (
+              {links.map((link) => (
                   <Link
                     key={link.href}
                     href={link.soon ? "/soon" : link.href}
@@ -174,11 +190,11 @@ export default function NavBarMinimal() {
                       Connexion
                     </Link>
                     <Link
-                      href="/quiz"
+                      href="/dashboard"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="px-4 py-3 text-center text-sm font-semibold text-white bg-slate-900 rounded-xl hover:bg-slate-800 transition-all"
                     >
-                      Quiz
+                      Dashboard
                     </Link>
                   </div>
                 )}

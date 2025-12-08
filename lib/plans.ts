@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export type Plan = { 
   code: string; 
@@ -10,24 +10,33 @@ export type Plan = {
 };
 
 export async function getUserPlan(userId: string): Promise<Plan> {
-  const sb = createClient(URL, KEY);
-  
-  const { data, error } = await sb
-    .from("user_plans")
-    .select("plan_code, plans!inner(max_assets, max_runs_per_day)")
-    .eq("user_id", userId)
-    .maybeSingle();
+  // Fallback local when env or table is missing
+  const fallback: Plan = { code: "free", max_assets: 1, max_runs_per_day: 1 };
+  if (!URL || !KEY) return fallback;
 
-  if (error) throw error;
+  try {
+    const sb = createClient(URL, KEY);
+    
+    const { data, error } = await sb
+      .from("user_plans")
+      .select("plan_code, plans!inner(max_assets, max_runs_per_day)")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-  // Handle both array and object response formats from Supabase
-  const p = Array.isArray(data?.plans) ? data.plans[0] : data?.plans;
-  
-  return {
-    code: data?.plan_code ?? "free",
-    max_assets: p?.max_assets ?? 1,
-    max_runs_per_day: p?.max_runs_per_day ?? 1,
-  };
+    if (error) throw error;
+
+    // Handle both array and object response formats from Supabase
+    const p = Array.isArray(data?.plans) ? data.plans[0] : data?.plans;
+    
+    return {
+      code: data?.plan_code ?? "free",
+      max_assets: p?.max_assets ?? 1,
+      max_runs_per_day: p?.max_runs_per_day ?? 1,
+    };
+  } catch (error) {
+    console.error("Error loading user plan, fallback to free:", error);
+    return fallback;
+  }
 }
 
 export async function countUserActiveSubs(userId: string): Promise<number> {

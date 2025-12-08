@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Mail, ArrowRight, Check, Sparkles, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, ArrowRight, Check, Sparkles, Lock, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -37,10 +37,28 @@ export default function AuthPage() {
       return;
     }
 
-    setStatus("sent");
-    setTimeout(() => {
-      window.location.href = "/dashboard";
-    }, 600);
+    setStatus("idle");
+    window.location.href = "/dashboard";
+  };
+
+  const handleResetPassword = async () => {
+    setError(null);
+    if (!email) {
+      setError("Indique ton email pour recevoir le lien de réinitialisation.");
+      return;
+    }
+    setStatus("loading");
+    const redirectBase = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${redirectBase}/auth/callback?type=recovery`,
+    });
+    if (error) {
+      setError(error.message);
+      setStatus("error");
+      return;
+    }
+    setStatus("idle");
+    alert("Lien de réinitialisation envoyé à ton email.");
   };
 
   return (
@@ -68,28 +86,8 @@ export default function AuthPage() {
             </p>
           </div>
 
-          {status === "sent" ? (
-            /* Success State */
-            <div className="text-center py-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#34C759]/10 mb-4">
-                <Check className="w-8 h-8 text-[#34C759]" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                Email envoyé !
-              </h2>
-              <p className="text-gray-500 mb-6">
-                Un lien de connexion a été envoyé à<br />
-                <span className="font-medium text-gray-700">{email}</span>
-              </p>
-              <div className="p-4 rounded-2xl bg-[#007AFF]/5 border border-[#007AFF]/10">
-                <p className="text-sm text-[#007AFF]">
-                  📩 Vérifie ta boîte mail et clique sur le lien pour te connecter.
-                </p>
-              </div>
-            </div>
-          ) : (
-            /* Form */
-            <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Adresse email
@@ -154,9 +152,13 @@ export default function AuthPage() {
                   </button>
                 </div>
                 <div className="text-right">
-                  <Link href="/auth/reset" className="text-xs text-[#007AFF] hover:text-[#0066D6] font-medium">
+                  <button
+                    type="button"
+                    onClick={handleResetPassword}
+                    className="text-xs text-[#007AFF] hover:text-[#0066D6] font-medium"
+                  >
                     Mot de passe oublié ?
-                  </Link>
+                  </button>
                 </div>
               </div>
 
@@ -187,17 +189,16 @@ export default function AuthPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span>Envoi en cours...</span>
+                    <span>Connexion...</span>
                   </>
                 ) : (
                   <>
-                    <span>Recevoir le lien magique</span>
+                    <span>Se connecter</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </>
                 )}
               </button>
             </form>
-          )}
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-black/[0.06] text-center">

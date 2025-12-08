@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from "next/navigation";
 import { simulateProjection } from "@/lib/profileEnginePro";
 import Link from "next/link";
 import { 
@@ -36,6 +38,13 @@ type Result = {
   expectedVol: number;
   allocation: Allocation;
   monthly?: number;
+};
+
+const getHorizonLabel = (riskIndex: number) => {
+  if (riskIndex <= 25) return "3-5 ans";
+  if (riskIndex <= 45) return "5-7 ans";
+  if (riskIndex <= 65) return "7-10 ans";
+  return "10+ ans";
 };
 
 // Profile colors based on label (explicit mapping)
@@ -249,9 +258,13 @@ function ProjectionChart({ monthly, expectedReturn, reinvest }: { monthly: numbe
 }
 
 export default function ResultPage() {
+  const supabase = createClientComponentClient();
+  const router = useRouter();
   const [res, setRes] = useState<Result | null>(null);
   const [unkHint, setUnkHint] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     try {
@@ -265,6 +278,40 @@ export default function ResultPage() {
       }
     } catch {}
   }, []);
+
+  useEffect(() => {
+    if (res?.riskIndex != null) {
+      localStorage.setItem("quiz_score", String(res.riskIndex));
+    }
+  }, [res?.riskIndex]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user ?? null);
+    };
+    fetchUser();
+  }, [supabase]);
+
+  useEffect(() => {
+    if (!user?.id || !res || saved) return;
+    const horizon = getHorizonLabel(res.riskIndex ?? 0);
+    const saveResult = async () => {
+      const { error } = await supabase.from("results").insert({
+        user_id: user.id,
+        score: res.riskIndex,
+        profile: res.label,
+        horizon,
+        allocation: res.allocation,
+      });
+      if (error) {
+        console.warn("Erreur sauvegarde résultat:", error.message);
+      } else {
+        setSaved(true);
+      }
+    };
+    saveResult();
+  }, [user?.id, res, saved, supabase]);
 
   const theme = res ? getProfileThemeByLabel(res.label) : getProfileThemeByLabel("Équilibré");
 
@@ -352,6 +399,35 @@ export default function ResultPage() {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-6 py-12">
+        {!user && (
+          <div className="mb-8 bg-white/70 border border-white/60 backdrop-blur-md rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.08)] p-5 flex flex-col gap-3">
+            <div>
+              <p className="text-sm text-slate-600">Sauvegarder ton résultat</p>
+              <p className="text-lg font-semibold text-slate-900">Crée un compte pour garder ton score et ton profil.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => router.push("/signup")}
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-[#4F63FF] text-white font-semibold shadow-[0_10px_30px_rgba(0,0,0,0.12)] hover:bg-[#3f52e6] transition-all"
+              >
+                Créer mon compte
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => router.push("/auth")}
+                className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-white text-slate-900 font-semibold border border-slate-200 hover:-translate-y-0.5 transition-all"
+              >
+                Se connecter
+              </button>
+            </div>
+          </div>
+        )}
+        {user && (
+          <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700">
+            <CheckCircle2 className="w-4 h-4" />
+            Score sauvegardé sur ton compte
+          </div>
+        )}
         {/* Warnings */}
         {(unkHint || res.warnings.length > 0) && (
           <div className={`mb-8 transition-all duration-500 delay-200 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>

@@ -3,12 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Mail } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const footerLinks = {
   navigation: [
     { label: "Quiz", href: "/quiz" },
-    { label: "Analyses", href: "/analyses" },
-    { label: "Actu", href: "/actu" },
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Analyses", href: "/analyses", soon: true },
+    { label: "Actu", href: "/actu", soon: true },
   ],
   legal: [
     { label: "Mentions légales", href: "/legal" },
@@ -60,10 +62,20 @@ export function Footer() {
             {footerLinks.navigation.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
-                className="relative pb-0.5 transition-colors hover:text-slate-900 after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-full after:scale-x-0 hover:after:scale-x-100 after:origin-left after:bg-slate-900 after:transition-transform after:duration-200"
+                href={link.soon ? "/soon" : link.href}
+                className={cn(
+                  "relative pb-0.5 transition-colors after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-full after:scale-x-0 hover:after:scale-x-100 after:origin-left after:bg-slate-900 after:transition-transform after:duration-200",
+                  link.soon ? "text-slate-400 hover:text-slate-500" : "text-slate-600 hover:text-slate-900"
+                )}
               >
-                {link.label}
+                <span className="flex items-center gap-2">
+                  {link.label}
+                  {link.soon && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded">
+                      Soon
+                    </span>
+                  )}
+                </span>
               </Link>
             ))}
           </div>
