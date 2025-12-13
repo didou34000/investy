@@ -15,24 +15,24 @@ export async function getUserPlan(userId: string): Promise<Plan> {
   if (!URL || !KEY) return fallback;
 
   try {
-    const sb = createClient(URL, KEY);
-    
-    const { data, error } = await sb
-      .from("user_plans")
-      .select("plan_code, plans!inner(max_assets, max_runs_per_day)")
-      .eq("user_id", userId)
-      .maybeSingle();
+  const sb = createClient(URL, KEY);
+  
+  const { data, error } = await sb
+    .from("user_plans")
+    .select("plan_code, plans!inner(max_assets, max_runs_per_day)")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-    if (error) throw error;
+  if (error) throw error;
 
-    // Handle both array and object response formats from Supabase
-    const p = Array.isArray(data?.plans) ? data.plans[0] : data?.plans;
-    
-    return {
-      code: data?.plan_code ?? "free",
-      max_assets: p?.max_assets ?? 1,
-      max_runs_per_day: p?.max_runs_per_day ?? 1,
-    };
+  // Handle both array and object response formats from Supabase
+  const p = Array.isArray(data?.plans) ? data.plans[0] : data?.plans;
+  
+  return {
+    code: data?.plan_code ?? "free",
+    max_assets: p?.max_assets ?? 1,
+    max_runs_per_day: p?.max_runs_per_day ?? 1,
+  };
   } catch (error) {
     console.error("Error loading user plan, fallback to free:", error);
     return fallback;

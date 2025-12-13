@@ -88,7 +88,7 @@ export default function NavBarMinimal() {
                         ? "text-slate-900 bg-slate-100" 
                         : isDash
                           ? "text-slate-900 bg-white border border-slate-200 shadow-sm hover:-translate-y-0.5"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   )}
                 >
                   <span className="flex items-center gap-2">
@@ -156,7 +156,7 @@ export default function NavBarMinimal() {
               className="fixed top-20 left-4 right-4 z-50 md:hidden bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden"
             >
               <div className="p-4 space-y-1">
-              {links.map((link) => (
+                {links.map((link) => (
                   <Link
                     key={link.href}
                     href={link.soon ? "/soon" : link.href}

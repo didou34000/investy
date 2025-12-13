@@ -34,7 +34,7 @@ function toAllocation(raw: Record<string, number>): Allocation {
   };
 }
 
-function codeFromRisk(risk: number): string {
+export function codeFromRisk(risk: number): string {
   if (risk <= 15) return "P0";
   if (risk <= 25) return "P1";
   if (risk <= 35) return "P2";
@@ -92,5 +92,8 @@ export function mapToProfile(answers: Record<string, any>, out: Output): Profile
     monthly: Number(answers.monthly_investment || 0) || undefined,
   };
 }
+
+// Alias utilisé par les composants UI (result & dashboard)
+export type InvestyProfileResult = Profile;
 
 

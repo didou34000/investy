@@ -1,44 +1,56 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/navigation";
-import { simulateProjection } from "@/lib/profileEnginePro";
 import Link from "next/link";
 import { 
-  PieChart, 
-  Target, 
-  TrendingUp, 
-  TrendingDown, 
-  Shield, 
-  Landmark, 
-  Clock, 
   ArrowRight, 
-  RefreshCw, 
-  Download, 
-  Share2,
+  RefreshCw,
   CheckCircle2,
-  AlertTriangle,
+  AlertCircle,
+  TrendingUp,
+  Shield,
+  Wallet,
   Zap,
   BarChart3,
-  Wallet,
-  Calendar
+  Target,
+  Clock,
+  Landmark,
+  PieChart,
+  Info,
 } from "lucide-react";
+import { getProfileCopy } from "@/lib/profileCopy";
+import { simulateInvestment } from "@/lib/simulate";
 
-type Badge = { label: string; tone: "neutral" | "positive" | "warning" };
+// ============================================
+// TYPES
+// ============================================
+
 type Allocation = { cash: number; bonds: number; equities_core: number; equities_tilts: number; crypto: number };
 type Result = {
   code: string;
   label: string;
   subtitle: string;
-  badges: Badge[];
-  warnings: string[];
   riskIndex: number;
   expectedReturn: number;
   expectedVol: number;
   allocation: Allocation;
-  monthly?: number;
 };
+
+// ============================================
+// NAVIGATION
+// ============================================
+
+const sections = [
+  { id: "resultat", label: "Résultat" },
+  { id: "details", label: "Détails" },
+  { id: "projection", label: "Projection" },
+  { id: "suite", label: "Suite" },
+];
+
+// ============================================
+// HELPERS
+// ============================================
 
 const getHorizonLabel = (riskIndex: number) => {
   if (riskIndex <= 25) return "3-5 ans";
@@ -47,243 +59,121 @@ const getHorizonLabel = (riskIndex: number) => {
   return "10+ ans";
 };
 
-// Profile colors based on label (explicit mapping)
-const getProfileThemeByLabel = (label: string) => {
-  const map: Record<string, { gradient: string; bg: string; text: string; border: string; halo1: string; halo2: string }> = {
-    Prudent: {
-      gradient: "from-emerald-100 via-emerald-50 to-white",
-      bg: "bg-emerald-50",
-      text: "text-emerald-600",
-      border: "border-emerald-200",
-      halo1: "bg-emerald-200/45",
-      halo2: "bg-emerald-100/45",
-    },
-    "Équilibré": {
-      gradient: "from-[#E8EDFF] via-[#DDE6FF] to-white",
-      bg: "bg-blue-50",
-      text: "text-blue-600",
-      border: "border-blue-200",
-      halo1: "bg-blue-200/45",
-      halo2: "bg-indigo-100/35",
-    },
-    Modéré: {
-      gradient: "from-[#E9E7FF] via-[#DDE6FF] to-white",
-      bg: "bg-indigo-50",
-      text: "text-indigo-600",
-      border: "border-indigo-200",
-      halo1: "bg-indigo-200/45",
-      halo2: "bg-blue-200/35",
-    },
-    Dynamique: {
-      gradient: "from-[#F9E9FF] via-[#E7E9FF] to-white",
-      bg: "bg-pink-50",
-      text: "text-pink-600",
-      border: "border-pink-200",
-      halo1: "bg-pink-200/45",
-      halo2: "bg-violet-200/35",
-    },
-    Offensif: {
-      gradient: "from-[#FFE8E0] via-[#FFEFE6] to-white",
-      bg: "bg-orange-50",
-      text: "text-orange-600",
-      border: "border-orange-200",
-      halo1: "bg-orange-200/45",
-      halo2: "bg-rose-200/35",
-    },
-  };
-  return map[label] || map["Équilibré"];
+const getRiskLevel = (riskIndex: number) => {
+  if (riskIndex <= 25) return { label: "Faible", level: 1, color: "emerald" };
+  if (riskIndex <= 45) return { label: "Modéré", level: 2, color: "blue" };
+  if (riskIndex <= 65) return { label: "Moyen", level: 3, color: "amber" };
+  if (riskIndex <= 85) return { label: "Élevé", level: 4, color: "orange" };
+  return { label: "Très élevé", level: 5, color: "red" };
 };
 
-// Fallback palette by risk index (used in gauge / legends)
-const getProfileTheme = (riskIndex: number) => {
-  if (riskIndex <= 25) return { gradient: "from-emerald-400 to-emerald-500", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200" };
-  if (riskIndex <= 45) return { gradient: "from-blue-400 to-indigo-500", bg: "bg-blue-50", text: "text-blue-600", border: "border-blue-200" };
-  if (riskIndex <= 65) return { gradient: "from-indigo-400 to-blue-500", bg: "bg-indigo-50", text: "text-indigo-600", border: "border-indigo-200" };
-  if (riskIndex <= 85) return { gradient: "from-pink-400 to-violet-500", bg: "bg-pink-50", text: "text-pink-600", border: "border-pink-200" };
-  return { gradient: "from-orange-400 to-rose-500", bg: "bg-orange-50", text: "text-orange-600", border: "border-orange-200" };
+const getVariationRange = (riskIndex: number) => {
+  if (riskIndex <= 25) return "±5-8%";
+  if (riskIndex <= 45) return "±8-12%";
+  if (riskIndex <= 65) return "±10-15%";
+  if (riskIndex <= 85) return "±15-25%";
+  return "±20-35%";
 };
 
-const allocationData = [
-  { key: "cash", label: "Liquidités", color: "#94a3b8", icon: Wallet },
-  { key: "bonds", label: "Obligations", color: "#3b82f6", icon: Shield },
-  { key: "equities_core", label: "Actions (cœur)", color: "#8b5cf6", icon: TrendingUp },
-  { key: "equities_tilts", label: "Tilts / Alternatifs", color: "#f59e0b", icon: Zap },
-  { key: "crypto", label: "Crypto", color: "#06b6d4", icon: BarChart3 },
+const allocationItems = [
+  { key: "equities_core", label: "Actions / ETF", color: "#4F46E5", icon: TrendingUp, desc: "Croissance long terme" },
+  { key: "bonds", label: "Obligations", color: "#7C3AED", icon: Shield, desc: "Stabilité et revenus" },
+  { key: "cash", label: "Liquidités", color: "#64748B", icon: Wallet, desc: "Sécurité immédiate" },
+  { key: "equities_tilts", label: "Thématiques", color: "#F59E0B", icon: Zap, desc: "Secteurs spécifiques" },
+  { key: "crypto", label: "Crypto", color: "#06B6D4", icon: BarChart3, desc: "Actifs alternatifs" },
 ];
 
-function formatCurrency(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+function formatMoney(n: number) {
+  return n.toLocaleString('fr-FR') + ' €';
 }
 
-function AnimatedNumber({ value, suffix = "", prefix = "" }: { value: number; suffix?: string; prefix?: string }) {
-  const [display, setDisplay] = useState(0);
-  
-  useEffect(() => {
-    const duration = 1500;
-    const steps = 60;
-    const increment = value / steps;
-    let current = 0;
-    
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= value) {
-        setDisplay(value);
-        clearInterval(timer);
-      } else {
-        setDisplay(Math.round(current));
-      }
-    }, duration / steps);
-    
-    return () => clearInterval(timer);
-  }, [value]);
-  
-  return <span>{prefix}{display.toLocaleString('fr-FR')}{suffix}</span>;
-}
+// ============================================
+// SIDE NAVIGATION - FIXED
+// ============================================
 
-function RiskGauge({ value }: { value: number }) {
-  const theme = getProfileTheme(value);
-  
+function SideNav({ activeSection }: { activeSection: string }) {
+  const scrollTo = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const activeIndex = sections.findIndex(s => s.id === activeSection);
+
   return (
-    <div className="relative">
-      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+    <nav className="hidden lg:block fixed left-8 top-1/2 -translate-y-1/2 z-50">
+      <div className="relative">
+        {/* Vertical line */}
+        <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-slate-200" />
+        
+        {/* Progress line */}
         <div 
-          className={`h-full bg-gradient-to-r ${theme.gradient} rounded-full transition-all duration-1000 ease-out`}
-          style={{ width: `${value}%` }}
+          className="absolute left-[7px] top-2 w-0.5 bg-slate-900 transition-all duration-300"
+          style={{ height: `${(activeIndex / (sections.length - 1)) * 100}%` }}
         />
-      </div>
-      <div className="flex justify-between mt-2 text-xs text-slate-400">
-        <span>Prudent</span>
-        <span>Équilibré</span>
-        <span>Dynamique</span>
-        <span>Offensif</span>
-      </div>
-    </div>
-  );
-}
-
-function AllocationBar({ data, allocation }: { data: typeof allocationData; allocation: Allocation }) {
-  const total = Object.values(allocation).reduce((a, b) => a + b, 0);
-  
-  return (
-    <div className="space-y-4">
-      {/* Stacked bar */}
-      <div className="h-4 rounded-full overflow-hidden flex">
-        {data.map((item) => {
-          const value = allocation[item.key as keyof Allocation] || 0;
-          if (value === 0) return null;
-          return (
-            <div
-              key={item.key}
-              className="h-full transition-all duration-1000 ease-out first:rounded-l-full last:rounded-r-full"
-              style={{ width: `${(value / total) * 100}%`, backgroundColor: item.color }}
-            />
-          );
-        })}
-      </div>
-      
-      {/* Legend */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {data.map((item) => {
-          const value = allocation[item.key as keyof Allocation] || 0;
-          if (value === 0) return null;
-          const Icon = item.icon;
-          return (
-            <div key={item.key} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
-              <div 
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: `${item.color}20` }}
+        
+        {/* Dots */}
+        <div className="relative flex flex-col gap-8">
+          {sections.map((section, index) => {
+            const isActive = activeSection === section.id;
+            const isPast = activeIndex > index;
+            
+            return (
+              <button
+                key={section.id}
+                onClick={() => scrollTo(section.id)}
+                className="flex items-center gap-4 group"
               >
-                <Icon className="w-4 h-4" style={{ color: item.color }} />
-              </div>
-              <div>
-                <div className="text-xs text-slate-500">{item.label}</div>
-                <div className="font-semibold text-slate-900">{value}%</div>
-              </div>
-            </div>
-          );
-        })}
+                <div className={`relative z-10 w-4 h-4 rounded-full border-2 transition-all duration-200 ${
+                  isActive 
+                    ? 'bg-slate-900 border-slate-900 scale-110' 
+                    : isPast 
+                      ? 'bg-slate-900 border-slate-900' 
+                      : 'bg-white border-slate-300 group-hover:border-slate-400'
+                }`}>
+                  {isPast && !isActive && (
+                    <CheckCircle2 className="w-3 h-3 text-white absolute top-0.5 left-0.5" />
+                  )}
+                </div>
+                
+                <span className={`text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                  isActive 
+                    ? 'text-slate-900' 
+                    : 'text-slate-400 group-hover:text-slate-600'
+                }`}>
+                  {section.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </nav>
   );
 }
 
-function ProjectionChart({ monthly, expectedReturn, reinvest }: { monthly: number; expectedReturn: number; reinvest: boolean }) {
-  const years = 10;
-  const proj = simulateProjection(0, monthly, years, expectedReturn / 100, reinvest);
-  const invested = monthly * years * 12;
-  const finalBalance = proj[proj.length - 1]?.balance ?? invested;
-  const gains = finalBalance - invested;
-  
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 bg-slate-50 rounded-2xl">
-          <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
-            <Wallet className="w-4 h-4" />
-            Total versé
-          </div>
-          <div className="text-2xl font-bold text-slate-900">{formatCurrency(invested)}</div>
-        </div>
-        <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
-          <div className="flex items-center gap-2 text-blue-600 text-sm mb-1">
-            <TrendingUp className="w-4 h-4" />
-            Projection 10 ans
-          </div>
-          <div className="text-2xl font-bold text-blue-600">{formatCurrency(finalBalance)}</div>
-        </div>
-      </div>
-      
-      {/* Visual growth bar */}
-      <div className="relative h-16 bg-slate-100 rounded-2xl overflow-hidden">
-        <div 
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-slate-300 to-slate-400 flex items-center justify-end pr-3"
-          style={{ width: `${(invested / finalBalance) * 100}%` }}
-        >
-          <span className="text-xs font-medium text-white">Versements</span>
-        </div>
-        <div 
-          className="absolute inset-y-0 bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-end pr-3"
-          style={{ left: `${(invested / finalBalance) * 100}%`, right: 0 }}
-        >
-          <span className="text-xs font-medium text-white">+{formatCurrency(gains)}</span>
-        </div>
-      </div>
-      
-      <div className="text-center text-sm text-slate-500">
-        <span className="font-medium text-slate-700">{formatCurrency(monthly)}/mois</span> • Rendement {expectedReturn.toFixed(1)}% • 
-        Réinvestissement {reinvest ? "activé" : "désactivé"}
-      </div>
-    </div>
-  );
-}
+// ============================================
+// MAIN PAGE
+// ============================================
 
 export default function ResultPage() {
   const supabase = createClientComponentClient();
-  const router = useRouter();
   const [res, setRes] = useState<Result | null>(null);
-  const [unkHint, setUnkHint] = useState(false);
-  const [showAnimation, setShowAnimation] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [saved, setSaved] = useState(false);
+  const [monthly, setMonthly] = useState(200);
+  const [activeSection, setActiveSection] = useState("resultat");
 
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("investy_result");
       if (raw) {
-        const parsed = JSON.parse(raw) as Result & { _meta?: { unkCount?: number } };
-        setRes(parsed);
-        if ((parsed as any)._meta?.unkCount && (parsed as any)._meta.unkCount >= 2) setUnkHint(true);
-        // Trigger animations after load
-        setTimeout(() => setShowAnimation(true), 100);
+        setRes(JSON.parse(raw) as Result);
+        setTimeout(() => setMounted(true), 50);
       }
     } catch {}
   }, []);
-
-  useEffect(() => {
-    if (res?.riskIndex != null) {
-      localStorage.setItem("quiz_score", String(res.riskIndex));
-    }
-  }, [res?.riskIndex]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -293,337 +183,547 @@ export default function ResultPage() {
     fetchUser();
   }, [supabase]);
 
+  // Intersection Observer
   useEffect(() => {
-    if (!user?.id || !res || saved) return;
-    const horizon = getHorizonLabel(res.riskIndex ?? 0);
-    const saveResult = async () => {
-      const { error } = await supabase.from("results").insert({
-        user_id: user.id,
-        score: res.riskIndex,
-        profile: res.label,
-        horizon,
-        allocation: res.allocation,
-      });
-      if (error) {
-        console.warn("Erreur sauvegarde résultat:", error.message);
-      } else {
-        setSaved(true);
+    if (!mounted) return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { 
+        threshold: [0.3, 0.5, 0.7],
+        rootMargin: '-10% 0px -40% 0px'
       }
-    };
-    saveResult();
-  }, [user?.id, res, saved, supabase]);
+    );
 
-  const theme = res ? getProfileThemeByLabel(res.label) : getProfileThemeByLabel("Équilibré");
+    sections.forEach((section) => {
+      const element = document.getElementById(section.id);
+      if (element) observer.observe(element);
+    });
 
+    return () => observer.disconnect();
+  }, [mounted]);
+
+  // No result
   if (!res) {
     return (
-      <main className="min-h-screen flex items-center justify-center px-6 py-20 bg-slate-50">
-        <div className="max-w-md text-center">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-slate-100 flex items-center justify-center">
-            <Target className="w-10 h-10 text-slate-400" />
+      <main className="min-h-screen flex items-center justify-center px-6 bg-white">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 flex items-center justify-center">
+            <Target className="w-8 h-8 text-slate-400" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-3">Aucun résultat disponible</h1>
-          <p className="text-slate-500 mb-8">Complète le quiz pour découvrir ton profil investisseur personnalisé.</p>
-          <Link 
-            href="/quiz" 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-all"
-          >
-            Faire le quiz
-            <ArrowRight className="w-4 h-4" />
+          <h1 className="text-xl font-semibold text-slate-900 mb-2">Aucun résultat</h1>
+          <p className="text-slate-500 mb-6">Fais le quiz pour voir ton profil.</p>
+          <Link href="/quiz" className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-lg font-medium">
+            Commencer <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </main>
     );
   }
 
+  const risk = getRiskLevel(res.riskIndex);
+  const copy = getProfileCopy(res.code);
+  const supportHint = res.riskIndex <= 50 ? "PEA" : "CTO";
+
+  // Projection calculations
+  const years = 10;
+  const projection = simulateInvestment({
+    montantInitial: 0,
+    mensualite: monthly,
+    horizonYears: years,
+    tauxAnnuel: (res.expectedReturn || 5) / 100,
+    reinvest: true,
+  });
+  const invested = monthly * years * 12;
+  const gains = projection.valeurFinale - invested;
+
   return (
-    <main className="min-h-screen bg-slate-50">
-      {/* Hero Header */}
-      <section className={`relative overflow-hidden bg-gradient-to-br ${theme.gradient} text-slate-900`}>
-        {/* Halos principaux */}
-        <div className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-60 pointer-events-none" style={{ backgroundColor: "rgba(255,255,255,0.45)" }} />
-        <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full blur-3xl opacity-50 pointer-events-none" style={{ backgroundColor: "rgba(255,255,255,0.35)" }} />
-        <div className={`absolute -top-10 left-1/3 w-72 h-72 rounded-full blur-3xl opacity-60 pointer-events-none ${theme.halo1 ?? ""}`} />
-        <div className={`absolute bottom-[-80px] right-1/3 w-64 h-64 rounded-full blur-3xl opacity-55 pointer-events-none ${theme.halo2 ?? ""}`} />
-        {/* Mesh / formes subtiles */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-60"
-          style={{
-            backgroundImage: `
-              radial-gradient(600px at 20% 25%, rgba(255,255,255,0.32), transparent 40%),
-              radial-gradient(420px at 80% 20%, rgba(255,255,255,0.25), transparent 42%),
-              radial-gradient(520px at 40% 80%, rgba(255,255,255,0.22), transparent 45%)
-            `
-          }}
-        />
-        <div className="absolute top-16 left-10 w-28 h-28 rounded-full border border-white/35 bg-white/12 blur-sm opacity-75 rotate-3" />
-        <div className="absolute top-8 right-24 w-24 h-24 rounded-[32px] border border-white/30 bg-white/15 backdrop-blur-sm opacity-70 -rotate-6" />
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-32 h-12 rounded-full border border-white/25 bg-white/12 backdrop-blur-sm opacity-70 rotate-2" />
+    <main className="min-h-screen bg-white">
+      
+      {/* Side Navigation */}
+      <SideNav activeSection={activeSection} />
+      
+      {/* Mobile header */}
+      <div className="lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            </div>
+            <span className="font-medium text-slate-900">{res.label}</span>
+          </div>
+          <span className="text-sm text-slate-500">{res.riskIndex}/100</span>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-6 lg:pl-32">
         
-        <div className="relative max-w-5xl mx-auto px-6 py-12">
-          <div className={`transition-all duration-700 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full mb-6">
-              <CheckCircle2 className="w-4 h-4" />
-              <span className="text-sm font-medium">Analyse complète</span>
-            </div>
-            
-            {/* Profile Title */}
-            <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-slate-900">{res.label}</h1>
-            <p className="text-xl text-slate-700 mb-8 max-w-2xl">{res.subtitle}</p>
-            
-            {/* Key Stats */}
-            <div className="grid grid-cols-3 gap-3 max-w-lg">
-              <div className="bg-white/65 backdrop-blur-md rounded-2xl p-4 text-center border border-white/70 shadow-sm">
-                <div className="text-3xl font-bold">
-                  <AnimatedNumber value={res.riskIndex} />
-                </div>
-                <div className="text-sm text-slate-700">Indice de risque</div>
-              </div>
-              <div className="bg-white/65 backdrop-blur-md rounded-2xl p-4 text-center border border-white/70 shadow-sm">
-                <div className="text-3xl font-bold">
-                  <AnimatedNumber value={Math.min(res.expectedReturn, 15)} suffix="%" />
-                </div>
-                <div className="text-sm text-slate-700">Rendement/an</div>
-              </div>
-              <div className="bg-white/65 backdrop-blur-md rounded-2xl p-4 text-center border border-white/70 shadow-sm">
-                <div className="text-3xl font-bold">
-                  <AnimatedNumber value={res.expectedVol} suffix="%" />
-                </div>
-                <div className="text-sm text-slate-700">Volatilité</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Content */}
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        {!user && (
-          <div className="mb-8 bg-white/70 border border-white/60 backdrop-blur-md rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.08)] p-5 flex flex-col gap-3">
-            <div>
-              <p className="text-sm text-slate-600">Sauvegarder ton résultat</p>
-              <p className="text-lg font-semibold text-slate-900">Crée un compte pour garder ton score et ton profil.</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => router.push("/signup")}
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-[#4F63FF] text-white font-semibold shadow-[0_10px_30px_rgba(0,0,0,0.12)] hover:bg-[#3f52e6] transition-all"
-              >
-                Créer mon compte
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => router.push("/auth")}
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-white text-slate-900 font-semibold border border-slate-200 hover:-translate-y-0.5 transition-all"
-              >
-                Se connecter
-              </button>
-            </div>
-          </div>
-        )}
-        {user && (
-          <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700">
+        {/* ========== SECTION 1: RÉSULTAT ========== */}
+        <section id="resultat" className="py-16 lg:py-24 scroll-mt-20">
+          
+          {/* Success badge */}
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-medium mb-6 transition-all duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
             <CheckCircle2 className="w-4 h-4" />
-            Score sauvegardé sur ton compte
+            Analyse terminée
           </div>
-        )}
-        {/* Warnings */}
-        {(unkHint || res.warnings.length > 0) && (
-          <div className={`mb-8 transition-all duration-500 delay-200 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            {unkHint && (
-              <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl mb-4">
-                <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                <div className="text-sm text-amber-800">
-                  <strong>Résultats calibrés par défaut.</strong> Plusieurs réponses sont « Je ne sais pas ». 
-                  Tu pourras affiner ton profil en refaisant le quiz.
-                </div>
+          
+          {/* Profile title */}
+          <h1 className={`text-4xl lg:text-5xl font-bold text-slate-900 mb-3 transition-all duration-500 delay-100 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            Profil {res.label}
+          </h1>
+          
+          <p className={`text-lg text-slate-500 mb-8 transition-all duration-500 delay-150 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+            {res.subtitle}
+          </p>
+          
+          {/* Key metrics grid */}
+          <div className={`grid grid-cols-3 gap-4 mb-8 transition-all duration-500 delay-200 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+            {/* Risk score */}
+            <div className="bg-slate-50 rounded-2xl p-4">
+              <div className="flex items-center gap-2 text-slate-500 mb-2">
+                <Shield className="w-4 h-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Risque</span>
               </div>
-            )}
-            {res.warnings.length > 0 && (
-              <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-2xl">
-                <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
-                <div className="text-sm text-yellow-800">
-                  <strong className="block mb-1">Points d'attention</strong>
-                  <ul className="list-disc ml-4 space-y-1">
-                    {res.warnings.map((w, i) => <li key={i}>{w}</li>)}
-                  </ul>
-                </div>
+              <div className="text-2xl font-bold text-slate-900">{res.riskIndex}</div>
+              <div className="text-sm text-slate-500">sur 100</div>
+            </div>
+            
+            {/* Risk level */}
+            <div className="bg-slate-50 rounded-2xl p-4">
+              <div className="flex items-center gap-2 text-slate-500 mb-2">
+                <BarChart3 className="w-4 h-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Niveau</span>
               </div>
-            )}
+              <div className="text-2xl font-bold text-slate-900">{risk.label}</div>
+              <div className="text-sm text-slate-500">{getVariationRange(res.riskIndex)}/an</div>
+            </div>
+            
+            {/* Horizon */}
+            <div className="bg-slate-50 rounded-2xl p-4">
+              <div className="flex items-center gap-2 text-slate-500 mb-2">
+                <Clock className="w-4 h-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Horizon</span>
+              </div>
+              <div className="text-2xl font-bold text-slate-900">{getHorizonLabel(res.riskIndex).split(' ')[0]}</div>
+              <div className="text-sm text-slate-500">ans minimum</div>
+            </div>
           </div>
-        )}
-
-        {/* Badges */}
-        <div className={`flex flex-wrap gap-2 mb-8 transition-all duration-500 delay-300 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          {res.badges.map((b, i) => (
-            <span 
-              key={i} 
-              className={`px-3 py-1.5 rounded-full text-sm font-medium border ${
-                b.tone === 'positive' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                b.tone === 'warning' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
-                'bg-slate-50 text-slate-700 border-slate-200'
-              }`}
-            >
-              {b.label}
-            </span>
-          ))}
-        </div>
-
-        {/* Main Grid */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left Column */}
-          <div className="space-y-6">
-            {/* Risk Gauge */}
-            <div className={`bg-white rounded-3xl p-6 shadow-sm border border-slate-100 transition-all duration-500 delay-400 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className={`w-10 h-10 rounded-xl ${theme.bg} flex items-center justify-center`}>
-                  <Target className={`w-5 h-5 ${theme.text}`} />
-                </div>
-                <div>
-                  <h2 className="font-semibold text-slate-900">Profil de risque</h2>
-                  <p className="text-sm text-slate-500">Score sur 100</p>
-                </div>
-              </div>
-              <RiskGauge value={res.riskIndex} />
+          
+          {/* Risk gauge visual */}
+          <div className={`bg-slate-50 rounded-2xl p-5 transition-all duration-500 delay-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-slate-600">Échelle de risque</span>
+              <span className="text-sm font-medium text-slate-900">{risk.label}</span>
             </div>
-
-            {/* Allocation */}
-            <div className={`bg-white rounded-3xl p-6 shadow-sm border border-slate-100 transition-all duration-500 delay-500 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
-                  <PieChart className="w-5 h-5 text-violet-600" />
-                </div>
-                <div>
-                  <h2 className="font-semibold text-slate-900">Allocation recommandée</h2>
-                  <p className="text-sm text-slate-500">Répartition optimale de ton capital</p>
-                </div>
-              </div>
-              <AllocationBar data={allocationData} allocation={res.allocation} />
+            <div className="flex gap-1 mb-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div 
+                  key={i} 
+                  className={`flex-1 h-3 rounded-full transition-all duration-500`}
+                  style={{ 
+                    backgroundColor: i <= risk.level ? '#1E293B' : '#E2E8F0',
+                    transitionDelay: `${300 + i * 100}ms`
+                  }}
+                />
+              ))}
             </div>
+            <div className="flex justify-between text-xs text-slate-400">
+              <span>Prudent</span>
+              <span>Offensif</span>
+            </div>
+          </div>
+        </section>
 
-            {/* Support recommandé */}
-            <div className={`bg-white rounded-3xl p-6 shadow-sm border border-slate-100 transition-all duration-500 delay-600 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                  <Landmark className="w-5 h-5 text-amber-600" />
-                </div>
-                <div>
-                  <h2 className="font-semibold text-slate-900">Support recommandé</h2>
-                  <p className="text-sm text-slate-500">Compte à privilégier</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className={`p-4 rounded-2xl border-2 ${res.riskIndex <= 50 ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-slate-50'}`}>
-                  <div className="font-semibold text-slate-900 mb-1">PEA</div>
-                  <div className="text-sm text-slate-500">Actions européennes, avantage fiscal après 5 ans</div>
-                  {res.riskIndex <= 50 && (
-                    <div className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-blue-600">
-                      <CheckCircle2 className="w-3 h-3" /> Recommandé
+        {/* ========== SECTION 2: DÉTAILS ========== */}
+        <section id="details" className="py-16 lg:py-24 border-t border-slate-100 scroll-mt-20">
+          
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Ton allocation</h2>
+          <p className="text-slate-500 mb-8">Répartition recommandée de ton portefeuille</p>
+          
+          {/* Allocation visual bar */}
+          <div className="mb-6">
+            <div className="flex h-5 rounded-full overflow-hidden shadow-inner bg-slate-100">
+              {allocationItems.map((item, index) => {
+                const value = res.allocation[item.key as keyof Allocation] || 0;
+                if (value === 0) return null;
+                return (
+                  <div 
+                    key={item.key}
+                    className="transition-all duration-700 first:rounded-l-full last:rounded-r-full relative group"
+                    style={{ 
+                      width: mounted ? `${value}%` : '0%',
+                      backgroundColor: item.color,
+                      transitionDelay: `${index * 100}ms`
+                    }} 
+                  />
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Allocation breakdown */}
+          <div className="space-y-3 mb-8">
+            {allocationItems.map((item) => {
+              const value = res.allocation[item.key as keyof Allocation] || 0;
+              if (value === 0) return null;
+              const Icon = item.icon;
+              return (
+                <div key={item.key} className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors">
+                  <div 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: `${item.color}20` }}
+                  >
+                    <Icon className="w-5 h-5" style={{ color: item.color }} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-slate-900">{item.label}</span>
+                      <span className="text-xl font-bold text-slate-900">{value}%</span>
                     </div>
-                  )}
+                    <span className="text-sm text-slate-500">{item.desc}</span>
+                  </div>
                 </div>
-                <div className={`p-4 rounded-2xl border-2 ${res.riskIndex > 50 ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-slate-50'}`}>
-                  <div className="font-semibold text-slate-900 mb-1">CTO</div>
-                  <div className="text-sm text-slate-500">Plus flexible, accès mondial et crypto</div>
-                  {res.riskIndex > 50 && (
-                    <div className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-blue-600">
-                      <CheckCircle2 className="w-3 h-3" /> Recommandé
-                    </div>
-                  )}
-                </div>
+              );
+            })}
+          </div>
+
+          {/* Interpretation */}
+          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
+            <div className="flex gap-3">
+              <Info className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-indigo-900 mb-2">Ce que ça signifie</h3>
+                <p className="text-sm text-indigo-800 leading-relaxed">{copy.paragraph}</p>
               </div>
             </div>
           </div>
+        </section>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Projection */}
-            <div className={`bg-white rounded-3xl p-6 shadow-sm border border-slate-100 transition-all duration-500 delay-500 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+        {/* ========== SECTION 3: PROJECTION ========== */}
+        <section id="projection" className="py-16 lg:py-24 border-t border-slate-100 scroll-mt-20">
+          
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Projection sur {years} ans</h2>
+          <p className="text-slate-500 mb-8">Estimation avec intérêts composés</p>
+          
+          {/* Monthly input */}
+          <div className="bg-slate-50 rounded-2xl p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <label className="text-sm font-medium text-slate-700">Versement mensuel</label>
+              <div className="text-2xl font-bold text-slate-900">{monthly} €</div>
+            </div>
+            <input
+              type="range"
+              min={50}
+              max={500}
+              step={25}
+              value={monthly}
+              onChange={(e) => setMonthly(Number(e.target.value))}
+              className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-slate-900"
+            />
+            <div className="flex justify-between text-xs text-slate-400 mt-2">
+              <span>50 €</span>
+              <span>500 €</span>
+            </div>
+          </div>
+          
+          {/* Projection results */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-slate-50 rounded-2xl p-5">
+              <div className="text-sm text-slate-500 mb-1">Total versé</div>
+              <div className="text-2xl font-bold text-slate-900">{formatMoney(invested)}</div>
+              <div className="text-sm text-slate-400 mt-1">{monthly} € × {years * 12} mois</div>
+            </div>
+            <div className="bg-slate-900 rounded-2xl p-5 text-white">
+              <div className="text-sm text-slate-400 mb-1">Valeur estimée</div>
+              <div className="text-2xl font-bold">{formatMoney(Math.round(projection.valeurFinale))}</div>
+              <div className="text-sm text-emerald-400 mt-1">+{formatMoney(Math.round(gains))} de gains</div>
+            </div>
+          </div>
+          
+          {/* Growth breakdown */}
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-slate-900">Projection d'épargne</h2>
-                  <p className="text-sm text-slate-500">Simulation sur 10 ans</p>
+                  <div className="font-medium text-emerald-900">Gains estimés</div>
+                  <div className="text-sm text-emerald-700">Intérêts composés sur {years} ans</div>
                 </div>
               </div>
-              <ProjectionChart 
-                monthly={res.monthly ?? 500} 
-                expectedReturn={res.expectedReturn}
-                reinvest={res.badges?.some(b => b.label.includes('Réinvestissement')) ?? true}
-              />
+              <div className="text-2xl font-bold text-emerald-700">+{formatMoney(Math.round(gains))}</div>
             </div>
-
-            {/* Metrics */}
-            <div className={`bg-white rounded-3xl p-6 shadow-sm border border-slate-100 transition-all duration-500 delay-600 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                  <BarChart3 className="w-5 h-5 text-slate-600" />
-                </div>
-                <div>
-                  <h2 className="font-semibold text-slate-900">Métriques clés</h2>
-                  <p className="text-sm text-slate-500">Estimations basées sur ton profil</p>
-                </div>
+          </div>
+          
+          {/* Visual bar */}
+          <div className="mb-4">
+            <div className="flex h-8 rounded-xl overflow-hidden">
+              <div 
+                className="bg-slate-300 flex items-center justify-center transition-all duration-500"
+                style={{ width: `${(invested / projection.valeurFinale) * 100}%` }}
+              >
+                <span className="text-xs font-medium text-slate-700 px-2">Versements</span>
               </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <TrendingUp className="w-4 h-4" />
-                    Rendement annuel attendu
-                  </div>
-                  <div className="font-semibold text-emerald-600">+{Math.min(res.expectedReturn, 15).toFixed(1)}%</div>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <TrendingDown className="w-4 h-4" />
-                    Volatilité attendue
-                  </div>
-                  <div className="font-semibold text-amber-600">±{res.expectedVol.toFixed(0)}%</div>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <Clock className="w-4 h-4" />
-                    Horizon recommandé
-                  </div>
-                  <div className="font-semibold text-blue-600">
-                    {res.riskIndex <= 30 ? "2-5 ans" : res.riskIndex <= 60 ? "5-10 ans" : "10+ ans"}
-                  </div>
-                </div>
+              <div 
+                className="bg-emerald-500 flex items-center justify-center transition-all duration-500"
+                style={{ width: `${(gains / projection.valeurFinale) * 100}%` }}
+              >
+                <span className="text-xs font-medium text-white px-2">Gains</span>
               </div>
             </div>
           </div>
-        </div>
+          
+          <p className="text-xs text-slate-400 text-center">
+            Estimation indicative basée sur un rendement moyen. Aucun rendement n&apos;est garanti.
+          </p>
+        </section>
 
-        {/* Actions */}
-        <div className={`mt-12 flex flex-wrap gap-4 justify-center transition-all duration-500 delay-700 ${showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <Link 
-            href="/quiz" 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-slate-300 transition-all"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refaire le quiz
-          </Link>
-          <button 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-all"
-          >
-            <Download className="w-4 h-4" />
-            Télécharger mon plan
-          </button>
-          <button 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-slate-300 transition-all"
-          >
-            <Share2 className="w-4 h-4" />
-            Partager
-          </button>
-        </div>
+        {/* ========== SECTION 4: SUITE ========== */}
+        <section id="suite" className="py-16 lg:py-24 border-t border-slate-100 scroll-mt-20">
+          
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Passer à l&apos;action</h2>
+          <p className="text-slate-500 mb-8">Les 3 étapes pour mettre en place ton plan</p>
+          
+          {/* Steps */}
+          <div className="space-y-4 mb-10">
+            <div className="flex gap-4 p-5 bg-slate-50 rounded-2xl">
+              <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold shrink-0">1</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Landmark className="w-4 h-4 text-slate-400" />
+                  <span className="font-semibold text-slate-900">Ouvre un compte d&apos;investissement</span>
+                </div>
+                <p className="text-sm text-slate-500">
+                  Choisis entre PEA et CTO selon ton profil (voir détails ci-dessous).
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-4 p-5 bg-slate-50 rounded-2xl">
+              <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold shrink-0">2</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <PieChart className="w-4 h-4 text-slate-400" />
+                  <span className="font-semibold text-slate-900">Investis selon l&apos;allocation</span>
+                </div>
+                <p className="text-sm text-slate-500">
+                  Utilise des ETF (fonds indiciels) pour répliquer facilement cette répartition. Un ETF monde + un ETF obligations peut suffire.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-4 p-5 bg-slate-50 rounded-2xl">
+              <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold shrink-0">3</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <RefreshCw className="w-4 h-4 text-slate-400" />
+                  <span className="font-semibold text-slate-900">Rééquilibre une fois par an</span>
+                </div>
+                <p className="text-sm text-slate-500">
+                  Vérifie que les proportions sont toujours respectées. Si une classe a trop monté, vends un peu pour réinvestir dans les autres.
+                </p>
+              </div>
+            </div>
+          </div>
 
-        {/* Disclaimer */}
-        <p className="text-center text-xs text-slate-400 mt-8 max-w-2xl mx-auto">
-          Ces estimations sont fournies à titre éducatif et ne constituent pas un conseil en investissement personnalisé. 
-          Les performances passées ne préjugent pas des performances futures.
-        </p>
+          {/* PEA vs CTO Section */}
+          <div className="mb-10">
+            <h3 className="text-lg font-bold text-slate-900 mb-4">Quel support choisir ?</h3>
+            
+            {/* Recommended badge */}
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm text-slate-500">Pour ton profil :</span>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${
+                supportHint === "PEA" 
+                  ? "bg-indigo-100 text-indigo-700" 
+                  : "bg-violet-100 text-violet-700"
+              }`}>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {supportHint} recommandé
+              </span>
+            </div>
+            
+            <div className="grid gap-4">
+              {/* PEA Card */}
+              <div className={`p-5 rounded-2xl border-2 transition-all ${
+                supportHint === "PEA" 
+                  ? "border-indigo-200 bg-indigo-50/50" 
+                  : "border-slate-200 bg-white"
+              }`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      supportHint === "PEA" ? "bg-indigo-100" : "bg-slate-100"
+                    }`}>
+                      <Shield className={`w-5 h-5 ${supportHint === "PEA" ? "text-indigo-600" : "text-slate-500"}`} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-slate-900">PEA</h4>
+                      <p className="text-xs text-slate-500">Plan d&apos;Épargne en Actions</p>
+                    </div>
+                  </div>
+                  {supportHint === "PEA" && (
+                    <span className="text-xs font-medium text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">Recommandé</span>
+                  )}
+                </div>
+                
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-900">Fiscalité avantageuse après 5 ans</span>
+                      <p className="text-slate-500">Seulement 17,2% de prélèvements sociaux sur les gains (au lieu de 30% flat tax).</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-900">Plafond : 150 000 €</span>
+                      <p className="text-slate-500">En versements (les gains ne comptent pas dans le plafond).</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-900">Univers limité</span>
+                      <p className="text-slate-500">Actions UE uniquement, mais ETF monde éligibles via réplication synthétique (Amundi, Lyxor).</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ETF suggestions for PEA */}
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">ETF populaires éligibles PEA</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["Amundi MSCI World", "Lyxor S&P 500", "Amundi Euro Stoxx 50", "BNP Easy CAC 40"].map((etf) => (
+                      <span key={etf} className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md">{etf}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* CTO Card */}
+              <div className={`p-5 rounded-2xl border-2 transition-all ${
+                supportHint === "CTO" 
+                  ? "border-violet-200 bg-violet-50/50" 
+                  : "border-slate-200 bg-white"
+              }`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      supportHint === "CTO" ? "bg-violet-100" : "bg-slate-100"
+                    }`}>
+                      <Zap className={`w-5 h-5 ${supportHint === "CTO" ? "text-violet-600" : "text-slate-500"}`} />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-slate-900">CTO</h4>
+                      <p className="text-xs text-slate-500">Compte-Titres Ordinaire</p>
+                    </div>
+                  </div>
+                  {supportHint === "CTO" && (
+                    <span className="text-xs font-medium text-violet-600 bg-violet-100 px-2 py-1 rounded-full">Recommandé</span>
+                  )}
+                </div>
+                
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-900">Accès mondial</span>
+                      <p className="text-slate-500">Actions US, ETF étrangers, crypto, obligations... Aucune restriction géographique.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-900">Pas de plafond</span>
+                      <p className="text-slate-500">Tu peux investir autant que tu veux, sans limite.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-slate-900">Fiscalité classique</span>
+                      <p className="text-slate-500">Flat tax de 30% sur les plus-values (12,8% IR + 17,2% PS).</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ETF suggestions for CTO */}
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">ETF populaires sur CTO</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["iShares Core MSCI World", "Vanguard S&P 500", "iShares Core Aggregate Bond", "Invesco QQQ (Nasdaq)"].map((etf) => (
+                      <span key={etf} className="text-xs px-2 py-1 bg-slate-100 text-slate-600 rounded-md">{etf}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Brokers info */}
+            <div className="mt-4 p-4 bg-slate-50 rounded-xl">
+              <p className="text-xs text-slate-500 mb-2">
+                <span className="font-medium text-slate-600">Où ouvrir ?</span> Plusieurs options selon tes besoins :
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { name: "Boursorama", type: "PEA + CTO" },
+                  { name: "Bourse Direct", type: "PEA + CTO" },
+                  { name: "Trade Republic", type: "CTO" },
+                  { name: "Degiro", type: "CTO" },
+                  { name: "Fortuneo", type: "PEA + CTO" },
+                ].map((broker) => (
+                  <span key={broker.name} className="text-xs px-2 py-1 bg-white border border-slate-200 text-slate-600 rounded-md">
+                    {broker.name} <span className="text-slate-400">({broker.type})</span>
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs text-slate-400 mt-2">
+                Compare les frais avant de choisir. Invsty ne recommande pas de courtier en particulier.
+              </p>
+            </div>
+          </div>
+          
+          {/* Disclaimer */}
+          <div className="flex gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100 mb-8">
+            <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800">
+              <span className="font-medium">Important :</span> Ceci n&apos;est pas un conseil en investissement personnalisé. 
+              Les estimations sont indicatives. Fais toujours tes propres recherches avant d&apos;investir.
+            </div>
+          </div>
+          
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {!user ? (
+              <Link href="/auth" className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-all">
+                Sauvegarder mon profil
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            ) : (
+              <Link href="/dashboard" className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-all">
+                Voir mon dashboard
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
+            <Link href="/quiz" className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-all">
+              <RefreshCw className="w-4 h-4" />
+              Refaire le quiz
+            </Link>
+          </div>
+          
+          {/* Bottom spacing */}
+          <div className="h-16" />
+        </section>
+
       </div>
     </main>
   );

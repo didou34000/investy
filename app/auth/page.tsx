@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Mail, ArrowRight, Check, Sparkles, Lock, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Mail, ArrowRight, Sparkles, Lock, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -87,7 +87,7 @@ export default function AuthPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Adresse email

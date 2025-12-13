@@ -153,15 +153,15 @@ export default function ProfileDetails() {
         setWeeklyNotifications(profileRow.weekly ?? false);
       }
 
-      try {
+        try {
         const res = await fetch("/api/user/plan");
         if (res.ok) {
           const planData = await res.json();
           setPlan(planData);
         }
-      } catch (e) {
-        console.error("Error loading plan:", e);
-      }
+        } catch (e) {
+          console.error("Error loading plan:", e);
+        }
 
       setLoading(false);
     };
@@ -271,8 +271,8 @@ export default function ProfileDetails() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold text-slate-900">Paramètres du compte</h1>
         <p className="text-slate-500 text-sm">Gère tes informations, sécurité et notifications.</p>
-      </div>
-
+          </div>
+          
       {error && (
         <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}
@@ -328,8 +328,8 @@ export default function ProfileDetails() {
               <div className="flex-1">
                 <p className="text-sm font-semibold text-slate-900">Session active</p>
                 <p className="text-xs text-slate-500">Dernière connexion : {lastLogin}</p>
-              </div>
-            </div>
+        </div>
+      </div>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => setPasswordModalOpen(true)}
@@ -338,14 +338,14 @@ export default function ProfileDetails() {
                 <Lock className="w-4 h-4" />
                 Changer le mot de passe
               </button>
-              <button
+          <button
                 onClick={handleLogoutAll}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-800 hover:-translate-y-0.5 transition-all"
-              >
+          >
                 <LogOut className="w-4 h-4" />
                 Déconnexion tous appareils
-              </button>
-            </div>
+          </button>
+        </div>
           </div>
         </SettingsCard>
       </SettingsSection>
@@ -400,7 +400,7 @@ export default function ProfileDetails() {
               enabled={weeklyNotifications}
               onToggle={handleToggleWeekly}
             />
-          </div>
+      </div>
         </SettingsCard>
       </SettingsSection>
 
@@ -420,7 +420,7 @@ export default function ProfileDetails() {
               {history.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-2 text-sm text-slate-700">
                   <span className="h-2 w-2 rounded-full bg-slate-300" />
-                  <div>
+          <div>
                     <p className="font-medium">{item.title}</p>
                     <p className="text-xs text-slate-500">{item.detail}</p>
                   </div>
@@ -455,7 +455,7 @@ export default function ProfileDetails() {
               >
                 Annuler
               </button>
-              <button
+          <button
                 onClick={handleUpdateEmail}
                 className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800"
               >
@@ -534,9 +534,9 @@ export default function ProfileDetails() {
                 className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60"
               >
                 Supprimer
-              </button>
-            </div>
-          </div>
+          </button>
+        </div>
+      </div>
         </div>
       )}
     </div>

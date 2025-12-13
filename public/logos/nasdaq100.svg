@@ -1,0 +1,17 @@
+<svg width="320" height="320" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nasg" x1="30" y1="280" x2="300" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111827"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="296" height="296" rx="70" fill="url(#nasg)"/>
+  <path d="M86 214C110 174 138 128 178 128C210 128 228 166 246 200" stroke="white" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+  <path d="M90 196L134 148L178 182L232 120" stroke="#38BDF8" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="134" cy="148" r="8" fill="#38BDF8"/>
+  <circle cx="178" cy="182" r="8" fill="#38BDF8"/>
+  <circle cx="232" cy="120" r="8" fill="#38BDF8"/>
+  <circle cx="90" cy="196" r="8" fill="#38BDF8"/>
+  <text x="50%" y="74%" text-anchor="middle" fill="white" font-family="Inter, sans-serif" font-size="34" font-weight="800">NASDAQ</text>
+  <text x="50%" y="88%" text-anchor="middle" fill="#38BDF8" font-family="Inter, sans-serif" font-size="28" font-weight="700">100</text>
+</svg>

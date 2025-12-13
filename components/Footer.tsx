@@ -45,7 +45,7 @@ export function Footer() {
             <div>
               <div className="text-base font-semibold text-slate-900 leading-tight">Invsty</div>
               <p className="text-xs text-slate-500">L'investissement expliqué simplement.</p>
-            </div>
+              </div>
           </Link>
           <Link
             href="/quiz"
@@ -53,10 +53,10 @@ export function Footer() {
           >
             Faire le quiz
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        </div>
+            </Link>
+          </div>
 
-        {/* Links */}
+          {/* Links */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between text-sm text-slate-600">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {footerLinks.navigation.map((link) => (
@@ -87,7 +87,7 @@ export function Footer() {
                 className="relative pb-0.5 transition-colors hover:text-slate-900 after:absolute after:left-0 after:bottom-0 after:h-[2px] after:w-full after:scale-x-0 hover:after:scale-x-100 after:origin-left after:bg-slate-900 after:transition-transform after:duration-200"
               >
                 {link.label}
-              </Link>
+            </Link>
             ))}
             <Link href="/contact" className="flex items-center gap-1.5 hover:text-slate-900 transition-all">
               <Mail className="h-4 w-4 text-slate-400" />
