@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
 
 type Props = {
   risk: number;
@@ -11,79 +10,75 @@ type Props = {
 };
 
 export default function SaveProfileCard(props: Props) {
-  const [session, setSession] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string|null>(null);
-  const [error, setError] = useState<string|null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => { sub.subscription.unsubscribe(); };
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : { user: null }))
+      .then((d) => setUser(d.user ?? null))
+      .catch(() => {});
   }, []);
 
   async function save() {
-    setSaving(true); setMessage(null); setError(null);
+    if (!user) {
+      setError("Connecte-toi pour enregistrer ton profil.");
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    setError(null);
     try {
-      const user = session?.user ?? null;
-      if (!user) {
-        setError("Veuillez vous connecter via le lien email pour enregistrer votre profil.");
-        setSaving(false);
-        return;
-      }
-      const payload = {
-        user_id: user.id,
-        email: user.email,
-        name,
-        risk_index: Math.round(props.risk),
-        drawdown_tolerance: Math.round(props.drawdownTolerance),
-        reinvest: props.reinvest,
-        monthly: Math.round(props.monthly),
-        horizon: Math.round(props.horizon),
-      };
-
-      // upsert profil courant
-      const { error: upsertErr } = await supabase.from("users_profiles")
-        .upsert(payload, { onConflict: "user_id" });
-      if (upsertErr) throw upsertErr;
-
-      // historiser snapshot
-      const { error: histErr } = await supabase.from("users_profile_history")
-        .insert({ user_id: user.id, email: user.email, payload });
-      if (histErr) throw histErr;
-
-      setMessage("Profil enregistré avec succès.");
-    } catch (e:any) {
-      setError(e?.message ?? "Erreur d'enregistrement.");
+      const res = await fetch("/api/save-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          result: {
+            risk_index: Math.round(props.risk),
+            profile_label: name || "Profil personnalisé",
+            expected_return: Math.min(3 + props.risk * 0.12, 14),
+          },
+          answers: {},
+        }),
+      });
+      if (res.ok) setMessage("Profil enregistré avec succès !");
+      else throw new Error("Erreur");
+    } catch {
+      setError("Erreur lors de l'enregistrement.");
     } finally {
       setSaving(false);
     }
   }
 
-  return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5">
-      <div className="font-medium mb-2">Enregistrer mon profil</div>
-      {!session && (
-        <div className="text-sm text-amber-700 mb-2">
-          Vous n'êtes pas connecté. Utilisez la carte "Créer un espace" ci-dessus pour recevoir un lien sécurisé par email.
-        </div>
-      )}
-      <div className="grid md:grid-cols-2 gap-2">
-        <input
-          type="text"
-          placeholder="Votre prénom (optionnel)"
-          className="border border-slate-300 rounded-lg px-3 py-2 w-full"
-          value={name} onChange={e=>setName(e.target.value)}
-        />
-        <button onClick={save} disabled={saving}
-          className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50">
-          {saving ? "Enregistrement..." : "Enregistrer"}
-        </button>
+  if (!user) {
+    return (
+      <div className="bg-white border border-slate-200 rounded-2xl p-5">
+        <p className="text-sm text-slate-600 mb-3">Connecte-toi pour sauvegarder ton profil.</p>
+        <a href="/auth" className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium">
+          Se connecter
+        </a>
       </div>
-      {message && <div className="text-sm text-green-700 mt-2">{message}</div>}
-      {error && <div className="text-sm text-red-700 mt-2">{error}</div>}
-      <p className="text-[11px] text-slate-500 mt-3">Vos données sont utilisées pour personnaliser votre espace et vos contenus éducatifs. Vous pouvez supprimer votre profil à tout moment.</p>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-3">
+      <h3 className="font-semibold text-slate-900">Enregistrer le profil</h3>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Nom du profil (optionnel)"
+        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+      />
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {message && <p className="text-sm text-emerald-600">{message}</p>}
+      <button onClick={save} disabled={saving}
+        className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-sm font-semibold hover:bg-slate-800 disabled:opacity-50 transition-all">
+        {saving ? "Enregistrement..." : "Enregistrer"}
+      </button>
     </div>
   );
 }
