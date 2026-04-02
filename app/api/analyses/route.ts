@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const revalidate = 0;
 
 const BASE44_APP_ID = "69cea6fecb8cd04fd0b6ab59";
-const BASE44_API = `https://api.base44.com/api/apps/${BASE44_APP_ID}`;
+const BASE44_API = `https://app.base44.com/api/apps/${BASE44_APP_ID}`;
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,27 +12,18 @@ export async function GET(req: NextRequest) {
     const tickers = searchParams.get('tickers') || '';
     const limit = parseInt(searchParams.get('limit') || '20');
 
-    const headers = {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.BASE44_API_KEY || "",
-    };
-
-    const filter: any = { is_published: true };
-    if (tickers) filter.asset_ticker = tickers;
-
-    const res = await fetch(`${BASE44_API}/entities/Analysis/list`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ filter, limit }),
+    const res = await fetch(`${BASE44_API}/entities/Analysis`, {
+      headers: { "api_key": process.env.BASE44_API_KEY || "" },
     });
 
-    if (!res.ok) {
-      throw new Error(`Base44 error: ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Base44 error: ${res.status}`);
 
-    const data = await res.json();
-    let items = data.items || [];
+    let items = await res.json();
+    if (!Array.isArray(items)) items = [];
 
+    // Filtres
+    items = items.filter((a: any) => a.is_published);
+    if (tickers) items = items.filter((a: any) => a.asset_ticker === tickers);
     if (q) {
       const ql = q.toLowerCase();
       items = items.filter((a: any) =>
@@ -43,7 +34,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({
-      items,
+      items: items.slice(0, limit),
       total: items.length,
       generatedAt: new Date().toISOString(),
     });
