@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const BASE44_APP_ID = "69cea6fecb8cd04fd0b6ab59";
-const BASE44_API = `https://api.base44.com/api/apps/${BASE44_APP_ID}`;
+const BASE44_API = `https://app.base44.com/api/apps/${BASE44_APP_ID}`;
 
 export async function POST(req: NextRequest) {
   try {
     const { result, answers } = await req.json();
-
-    const headers = {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.BASE44_API_KEY || "",
-    };
 
     const record = {
       profile_code: result.code,
@@ -25,13 +20,15 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(`${BASE44_API}/entities/QuizResult`, {
       method: "POST",
-      headers,
+      headers: {
+        "Content-Type": "application/json",
+        "api_key": process.env.BASE44_API_KEY || "",
+      },
       body: JSON.stringify(record),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      console.error("Base44 error:", err);
       return NextResponse.json({ ok: false, error: err }, { status: 500 });
     }
 
