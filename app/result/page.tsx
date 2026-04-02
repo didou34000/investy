@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+
 import Link from "next/link";
 import { 
   ArrowRight, 
@@ -158,7 +158,7 @@ function SideNav({ activeSection }: { activeSection: string }) {
 // ============================================
 
 export default function ResultPage() {
-  const supabase = createClientComponentClient();
+
   const [res, setRes] = useState<Result | null>(null);
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -167,7 +167,7 @@ export default function ResultPage() {
 
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem("investy_result");
+      const raw = sessionStorage.getItem("investy_result") || localStorage.getItem("invsty_result");
       if (raw) {
         setRes(JSON.parse(raw) as Result);
         setTimeout(() => setMounted(true), 50);
@@ -176,12 +176,11 @@ export default function ResultPage() {
   }, []);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user ?? null);
-    };
-    fetchUser();
-  }, [supabase]);
+    fetch("/api/auth/me")
+      .then(r => r.ok ? r.json() : { user: null })
+      .then(d => setUser(d.user ?? null))
+      .catch(() => {});
+  }, []);
 
   // Intersection Observer
   useEffect(() => {
