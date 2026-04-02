@@ -1,57 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AnalysisQuerySchema } from '@/lib/analyses/schema';
-import { listAnalyses } from '@/lib/analyses/store';
 
 export const revalidate = 0;
 
-/**
- * Récupère les analyses avec filtres et pagination
- */
+const BASE44_APP_ID = "69cea6fecb8cd04fd0b6ab59";
+const BASE44_API = `https://api.base44.com/api/apps/${BASE44_APP_ID}`;
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    
-    // Validation des paramètres de requête
-    const query = AnalysisQuerySchema.parse({
-      period: searchParams.get('period') || 'today',
-      minImportance: searchParams.get('minImportance') ? parseInt(searchParams.get('minImportance')!) : undefined,
-      categories: searchParams.get('categories') || undefined,
-      tickers: searchParams.get('tickers') || undefined,
-      q: searchParams.get('q') || undefined,
-      cursor: searchParams.get('cursor') || undefined,
-    });
-    
-    // Limite par défaut
+    const q = searchParams.get('q') || '';
+    const tickers = searchParams.get('tickers') || '';
     const limit = parseInt(searchParams.get('limit') || '20');
-    
-    // Récupération des analyses
-    const result = await listAnalyses({
-      ...query,
-      limit,
+
+    const headers = {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.BASE44_API_KEY || "",
+    };
+
+    const filter: any = { is_published: true };
+    if (tickers) filter.asset_ticker = tickers;
+
+    const res = await fetch(`${BASE44_API}/entities/Analysis/list`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ filter, limit }),
     });
-    
+
+    if (!res.ok) {
+      throw new Error(`Base44 error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    let items = data.items || [];
+
+    if (q) {
+      const ql = q.toLowerCase();
+      items = items.filter((a: any) =>
+        a.title?.toLowerCase().includes(ql) ||
+        a.asset?.toLowerCase().includes(ql) ||
+        a.asset_ticker?.toLowerCase().includes(ql)
+      );
+    }
+
     return NextResponse.json({
-      items: result.items,
-      nextCursor: result.nextCursor,
-      total: result.total,
-      query: {
-        period: query.period,
-        minImportance: query.minImportance,
-        categories: query.categories,
-        tickers: query.tickers,
-        q: query.q,
-        limit,
-      },
+      items,
+      total: items.length,
       generatedAt: new Date().toISOString(),
     });
-    
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur récupération analyses:', error);
     return NextResponse.json(
-      { 
-        error: 'Erreur lors de la récupération des analyses',
-        details: error.message,
-      },
+      { error: 'Erreur lors de la récupération des analyses', details: error.message },
       { status: 500 }
     );
   }
