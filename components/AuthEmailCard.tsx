@@ -1,79 +1,28 @@
 "use client";
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { Mail, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
-export default function AuthEmailCard({ onSuccess, planCode = "free" }:{ onSuccess?:()=>void; planCode?: string }){
-  const [email,setEmail]=useState("");
-  const [sent,setSent]=useState(false);
-  const [loading, setLoading] = useState(false);
-  
-  async function send(){
-    if (!email) {
-      alert("Veuillez entrer votre adresse email");
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      // Passer le plan_code dans la redirection pour l'assigner après connexion
-      const redirectUrl = new URL(`${window.location.origin}/auth/callback`);
-      redirectUrl.searchParams.set("plan", planCode);
-      
-      const { error } = await supabase.auth.signInWithOtp({ 
-        email, 
-        options:{ 
-          emailRedirectTo: redirectUrl.toString()
-        }
-      });
-      
-      if(error) {
-        alert(error.message);
-      } else {
-        setSent(true);
-        onSuccess?.();
-      }
-    } catch (err) {
-      alert("Erreur lors de l'envoi du lien");
-    } finally {
-      setLoading(false);
-    }
-  }
-  
+// Ce composant est remplacé par le système auth cookie
+// Il redirige simplement vers /signup
+export default function AuthEmailCard({ onSuccess, planCode = "free" }: { onSuccess?: () => void; planCode?: string }) {
   return (
-    <div className="border rounded-2xl p-4 bg-white shadow-sm">
-      <div className="font-medium text-slate-900">Créer mon espace</div>
-      <p className="text-sm text-slate-600 mt-1">
-        Recevez un lien sécurisé par email. Pas de mot de passe requis.
-      </p>
-      
-      <div className="mt-3 flex gap-2">
-        <input 
-          value={email} 
-          onChange={e=>setEmail(e.target.value)} 
-          placeholder="email@exemple.com" 
-          className="flex-1 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          type="email"
-          disabled={sent}
-        />
-        <button 
-          onClick={send} 
-          disabled={loading || sent}
-          className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? "..." : sent ? "Envoyé" : "Envoyer"}
-        </button>
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 text-center">
+      <div className="w-12 h-12 bg-[#F5F7FA] rounded-2xl flex items-center justify-center mx-auto">
+        <Mail className="w-6 h-6 text-slate-500" />
       </div>
-      
-      {sent && (
-        <div className="text-sm text-green-600 mt-2 flex items-center gap-2">
-          <span>✓</span>
-          <span>Lien de connexion envoyé à {email}</span>
-        </div>
-      )}
-      
-      <p className="text-xs text-slate-500 mt-2">
-        Cliquez sur le lien dans votre email pour vous connecter automatiquement.
-      </p>
+      <div>
+        <h3 className="font-semibold text-slate-900 mb-1">Créer un compte</h3>
+        <p className="text-sm text-slate-500">Rejoins invsty pour accéder à ton plan personnalisé.</p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Link href="/signup" className="w-full py-3 bg-slate-900 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2">
+          Créer un compte <ArrowRight className="w-4 h-4" />
+        </Link>
+        <Link href="/auth" className="w-full py-3 border border-slate-200 text-slate-700 rounded-xl text-sm font-medium">
+          Se connecter
+        </Link>
+      </div>
     </div>
   );
 }
