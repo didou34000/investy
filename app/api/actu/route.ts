@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseRss, stripHtml } from "@/lib/rss";
+import { parseRss } from "@/lib/rss";
 import { NEWS_SOURCES } from "@/lib/news/sources";
 import { normalizeItem } from "@/lib/news/normalize";
 import { translateToFrench } from "@/lib/translator";
@@ -8,16 +8,8 @@ import type { NewsItem } from "@/types/news";
 export const dynamic = "force-dynamic";
 export const revalidate = 900;
 
-// Base44 config
 const BASE44_APP_ID = "69cea6fecb8cd04fd0b6ab59";
-const BASE44_API = `https://api.base44.com/api/apps/${BASE44_APP_ID}`;
-
-async function getBase44Headers() {
-  return {
-    "Content-Type": "application/json",
-    "x-api-key": process.env.BASE44_API_KEY || "",
-  };
-}
+const BASE44_API = `https://app.base44.com/api/apps/${BASE44_APP_ID}`;
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -28,27 +20,28 @@ export async function GET(request: Request) {
 
   // Essayer de récupérer depuis Base44
   try {
-    const headers = await getBase44Headers();
-    const res = await fetch(`${BASE44_API}/entities/Article/list`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ filter: { is_published: true }, limit: 50 }),
+    const res = await fetch(`${BASE44_API}/entities/Article`, {
+      headers: { "api_key": process.env.BASE44_API_KEY || "" },
+      next: { revalidate: 900 },
     });
     if (res.ok) {
       const data = await res.json();
-      if (data.items && data.items.length > 0) {
-        const items: NewsItem[] = data.items.map((a: any) => ({
-          id: a.id,
-          title: a.title,
-          contentSnippet: a.summary,
-          url: a.source_url,
-          publishedAt: a.published_at || a.created_date,
-          source: a.source,
-          imageUrl: a.image_url,
-          tags: a.tags || [],
-          lang: "fr",
-        }));
-        return NextResponse.json({ items, fetchedAt: new Date().toISOString(), total: items.length });
+      if (Array.isArray(data) && data.length > 0) {
+        const published = data.filter((a: any) => a.is_published);
+        if (published.length > 0) {
+          const items: NewsItem[] = published.map((a: any) => ({
+            id: a.id,
+            title: a.title,
+            contentSnippet: a.summary,
+            url: a.source_url || "#",
+            publishedAt: a.published_at || a.created_date,
+            source: a.source || "invsty",
+            imageUrl: a.image_url,
+            tags: a.tags || [],
+            lang: "fr",
+          }));
+          return NextResponse.json({ items, fetchedAt: new Date().toISOString(), total: items.length });
+        }
       }
     }
   } catch (e) {
