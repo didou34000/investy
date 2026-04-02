@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Mail, Lock, ArrowRight, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, User } from "lucide-react";
+import Link from "next/link";
 
 export default function SignupPage() {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -26,192 +24,156 @@ export default function SignupPage() {
     return score;
   }, [password]);
 
-  const strengthConfig = {
-    faible: { label: "Faible", color: "text-red-500", bar: "bg-red-400", width: "w-1/3" },
-    correct: { label: "Correct", color: "text-amber-500", bar: "bg-amber-400", width: "w-2/3" },
-    fort: { label: "Fort", color: "text-emerald-500", bar: "bg-emerald-500", width: "w-full" },
-    none: { label: "", color: "text-slate-400", bar: "bg-slate-200", width: "w-0" },
-  } as const;
-
-  const passwordStrength =
-    passwordScore >= 4 ? strengthConfig.fort :
-    passwordScore >= 3 ? strengthConfig.correct :
-    password.length > 0 ? strengthConfig.faible :
-    strengthConfig.none;
+  const strength =
+    passwordScore >= 4 ? { label: "Fort", color: "text-emerald-500", bar: "bg-emerald-500", width: "w-full" } :
+    passwordScore >= 3 ? { label: "Correct", color: "text-amber-500", bar: "bg-amber-400", width: "w-2/3" } :
+    password.length > 0 ? { label: "Faible", color: "text-red-500", bar: "bg-red-400", width: "w-1/3" } :
+    { label: "", color: "", bar: "bg-slate-700", width: "w-0" };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    if (password !== confirm) return setError("Les mots de passe ne correspondent pas.");
+    if (passwordScore < 3) return setError("Mot de passe trop faible.");
+    setLoading(true);
 
-    if (password !== confirm) {
-      setError("Les mots de passe ne correspondent pas.");
-      setLoading(false);
-      return;
-    }
-    if (passwordScore < 3) {
-      setError("Mot de passe trop faible. Ajoute longueur, chiffre et symbole.");
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`,
-      },
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, full_name: fullName }),
     });
 
-    if (error) {
-      setError(error.message);
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "Erreur lors de la création du compte");
       setLoading(false);
       return;
     }
 
-    // Si le compte est créé mais sans session (email à confirmer)
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      setError("Compte créé. Vérifie ton email pour confirmer et te connecter.");
-      setLoading(false);
-      return;
-    }
-
-    await fetch("/api/create-profile", { method: "POST" });
-    router.push("/signup/success");
+    window.location.href = "/quiz";
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-[#E8EDFF]/50 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-[#DDE6FF]/45 rounded-full blur-3xl" />
-        <div className="absolute inset-0 pointer-events-none opacity-50" style={{ backgroundImage: "radial-gradient(600px at 20% 30%, rgba(255,255,255,0.4), transparent 50%), radial-gradient(520px at 80% 70%, rgba(255,255,255,0.25), transparent 50%)" }} />
-      </div>
-
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        <div className="p-8 sm:p-10 rounded-3xl bg-white/75 backdrop-blur-2xl border border-white/60 shadow-[0_16px_50px_rgba(0,0,0,0.08)] space-y-6">
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#4F63FF]/10 to-[#6A5DFF]/10">
-              <CheckCircle2 className="w-7 h-7 text-[#4F63FF]" />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900">Créer un compte</h1>
-            <p className="text-slate-500 text-sm">Email + mot de passe pour accéder à Invsty.</p>
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Sparkles className="text-emerald-400 w-6 h-6" />
+            <span className="text-2xl font-bold text-white">invsty</span>
           </div>
+          <p className="text-slate-400 text-sm">Crée ton profil investisseur en 2 minutes</p>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Adresse email</label>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
+          <h1 className="text-xl font-semibold text-white mb-6">Créer un compte</h1>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Nom */}
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Prénom (optionnel)</label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  <Mail className="w-5 h-5" />
-                </div>
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Ton prénom"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+                />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 text-base text-gray-900 bg-white/60 backdrop-blur-md border border-black/[0.08] rounded-xl placeholder:text-gray-400 transition-all duration-200 hover:border-black/[0.12] focus:outline-none focus:border-[#4F63FF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(79,99,255,0.12)]"
-                  placeholder="toi@exemple.com"
+                  placeholder="toi@email.com"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Mot de passe</label>
+            {/* Password */}
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Mot de passe</label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  <Lock className="w-5 h-5" />
-                </div>
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
-                  minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3.5 text-base text-gray-900 bg-white/60 backdrop-blur-md border border-black/[0.08] rounded-xl placeholder:text-gray-400 transition-all duration-200 hover:border-black/[0.12] focus:outline-none focus:border-[#4F63FF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(79,99,255,0.12)]"
-                  placeholder="Minimum 6 caractères"
+                  placeholder="••••••••"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-12 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
               {password.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="h-2 w-full rounded-full bg-white/15 overflow-hidden">
-                    <div
-                      className={`h-full ${passwordStrength.bar} ${passwordStrength.width} transition-[width,background-color] duration-400 ease-out`}
-                    />
+                <div className="mt-2">
+                  <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${strength.bar} ${strength.width}`} />
                   </div>
-                  <div className="text-xs text-gray-600 flex items-center gap-2">
-                    <span className="uppercase tracking-wide text-[11px] text-gray-500">Sécurité</span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/60 border border-white/70 ${passwordStrength.color.replace("text-", "text-")}`}
-                    >
-                      {passwordStrength.label}
-                    </span>
-                    <span className="text-gray-500 text-[11px]">
-                      Ajoute longueur, majuscules, chiffres, symboles pour renforcer.
-                    </span>
-                  </div>
+                  <p className={`text-xs mt-1 ${strength.color}`}>{strength.label}</p>
                 </div>
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
+            {/* Confirm */}
+            <div>
+              <label className="text-sm text-slate-400 mb-1 block">Confirmer le mot de passe</label>
               <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  <Lock className="w-5 h-5" />
-                </div>
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
                 <input
                   type={showConfirm ? "text" : "password"}
                   required
-                  minLength={6}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="w-full pl-12 pr-12 py-3.5 text-base text-gray-900 bg-white/60 backdrop-blur-md border border-black/[0.08] rounded-xl placeholder:text-gray-400 transition-all duration-200 hover:border-black/[0.12] focus:outline-none focus:border-[#4F63FF] focus:bg-white focus:shadow-[0_0_0_3px_rgba(79,99,255,0.12)]"
-                  placeholder="Retape ton mot de passe"
+                  placeholder="••••••••"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-12 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  aria-label={showConfirm ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                >
-                  {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+                  {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-[#FF3B30]/10 border border-[#FF3B30]/20">
-                <p className="text-sm text-[#FF3B30]">{error}</p>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                {error}
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="group w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-base font-semibold text-slate-900 bg-white/35 border border-white/50 backdrop-blur-md shadow-[0_12px_30px_rgba(0,0,0,0.08)] hover:bg-white/60 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(0,0,0,0.10)] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-250"
+              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-semibold rounded-xl py-3 flex items-center justify-center gap-2 transition"
             >
-              {loading ? "Création..." : "Créer mon compte"}
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              {loading ? (
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              ) : (
+                <>Créer mon compte <ArrowRight className="w-4 h-4" /></>
+              )}
             </button>
           </form>
 
-          <div className="text-center text-sm text-gray-500">
-            Déjà un compte ?{" "}
-            <a href="/auth" className="text-[#4F63FF] hover:text-[#384ee6] font-semibold">Se connecter</a>
+          <div className="mt-6 text-center">
+            <p className="text-slate-500 text-sm">
+              Déjà un compte ?{" "}
+              <Link href="/auth" className="text-emerald-400 hover:text-emerald-300 font-medium">
+                Se connecter
+              </Link>
+            </p>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
