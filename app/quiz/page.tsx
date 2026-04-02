@@ -136,7 +136,7 @@ export default function QuizPage() {
     setAnswers(prev => ({ ...prev, [q.id]: key }));
   }
 
-  function next() {
+  async function next() {
     if (step < total - 1) {
       setStep(step + 1);
     } else {
@@ -146,6 +146,16 @@ export default function QuizPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result = mapToProfile(answers as any, out);
         sessionStorage.setItem('investy_result', JSON.stringify(result));
+        // Sauvegarde dans Base44
+        try {
+          await fetch('/api/save-quiz', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ result, answers }),
+          });
+        } catch (e) {
+          console.warn('Base44 save failed (non-blocking):', e);
+        }
         router.push('/result');
       } catch (error) {
         console.error('Erreur lors du calcul du profil:', error);
